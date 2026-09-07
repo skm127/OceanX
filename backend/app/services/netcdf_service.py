@@ -149,18 +149,42 @@ class NetCDFService:
         depth_name = self._find_coord('depth', 'lev')
         time_name = self._find_coord('time', 't')
         
-        profile = ds[variable].isel({time_name: time_index}).sel(
-            {lat_name: lat, lon_name: lon}, method="nearest"
-        )
+        try:
+            # Bilinear 2D spatial interpolation over surrounding grid cells
+            profile = ds[variable].isel({time_name: time_index}).interp(
+                {lat_name: lat, lon_name: lon}, method="linear"
+            )
+        except Exception:
+            # Fallback to nearest neighbor if outside strict grid interpolation bounds
+            profile = ds[variable].isel({time_name: time_index}).sel(
+                {lat_name: lat, lon_name: lon}, method="nearest"
+            )
         
         depths = profile.coords[depth_name].values.tolist()
         values = profile.values.tolist()
         
         # Replace NaN with None for JSON serialization
-        values = [None if np.isnan(v) else round(v, 4) for v in values]
+        values = [None if np.isnan(v) else round(float(v), 4) for v in values]
         
         return depths, values
     
+    def find_nearest_time_index(self, timestamp_str: str) -> int:
+        """Find the closest model time step index for an observation timestamp."""
+        if not self.is_loaded:
+            return 0
+        try:
+            import pandas as pd
+            time_name = self._find_coord('time', 't')
+            if not time_name:
+                return 0
+            model_times = pd.to_datetime(self.dataset.coords[time_name].values)
+            target = pd.to_datetime(timestamp_str)
+            # Find minimal absolute time delta
+            diffs = np.abs((model_times - target).total_seconds())
+            return int(np.argmin(diffs))
+        except Exception:
+            return 0
+
     def close(self):
         """Close the dataset."""
         if self.dataset:

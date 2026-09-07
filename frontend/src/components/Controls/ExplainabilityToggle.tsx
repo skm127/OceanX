@@ -1,8 +1,8 @@
 /**
  * ExplainabilityToggle.tsx
- * FR-15: Citizen vs Scientist Dual-Lens Explainability Switch.
- * Seamlessly adapts ocean intelligence between plain English for citizens/disaster managers
- * and rigorous quantitative physics for research scientists.
+ * Dual-Lens Scientific Workstation Mode Switch:
+ * - [ Explorer View ]: Actionable natural-language interpretation for coastal stakeholders
+ * - [ Scientific View ]: Quantitative isopycnal gradients, integrals, and ML anomaly parameters
  */
 import React from 'react';
 import './ExplainabilityToggle.css';
@@ -21,19 +21,19 @@ export const ExplainabilityToggle: React.FC<ExplainabilityToggleProps> = ({ mode
         <button
           className={`explain-toggle-btn citizen ${mode === 'citizen' ? 'active' : ''}`}
           onClick={() => onChange('citizen')}
-          title="Citizen Lens: Plain English explanations for citizens, students, and disaster responders"
+          title="Explorer View: Qualitative oceanographic summaries for coastal managers and students"
         >
           <span className="mode-dot citizen" />
-          <span className="mode-label">Citizen View</span>
+          <span className="mode-label">Explorer</span>
         </button>
 
         <button
           className={`explain-toggle-btn scientist ${mode === 'scientist' ? 'active' : ''}`}
           onClick={() => onChange('scientist')}
-          title="Scientist Lens: Rigorous quantitative metrics and isopycnal physics for ocean researchers"
+          title="Scientific View: Quantitative isopycnal gradients, residuals, and Isolation Forest ML parameters"
         >
           <span className="mode-dot scientist" />
-          <span className="mode-label">Scientist View</span>
+          <span className="mode-label">Scientific</span>
         </button>
       </div>
     </div>

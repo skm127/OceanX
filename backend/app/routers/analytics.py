@@ -314,15 +314,22 @@ def get_ocean_dossier(
         nearby_floats.sort(key=lambda x: x["distance_km"])
         nearest_float_dist = nearby_floats[0]["distance_km"] if nearby_floats else None
         nearest_float_id = nearby_floats[0]["id"] if nearby_floats else None
-        model_error = 0.32
-        anomaly_status = "Nominal Ocean Condition"
+        
+        # Calculate authentic model residual against nearest in-situ float if within range
+        model_error = None
+        anomaly_status = "No in-situ observations within 350km — model forecast only"
 
-        if 10.0 <= lat <= 16.0 and 84.0 <= lon <= 90.0:
-            model_error = 2.45
-            anomaly_status = "Critical Marine Heatwave (+2.4°C)"
-        elif 16.0 <= lat <= 22.0 and 64.0 <= lon <= 72.0:
-            model_error = 1.15
-            anomaly_status = "Moderate Thermocline Inversion (+1.1°C)"
+        if nearby_floats and argo_service.is_loaded:
+            nearest_p = argo_service.get_profile(nearest_float_id)
+            if nearest_p and nearest_p.get("temperatures") and nearest_p.get("depths"):
+                obs_t_at_depth = float(np.interp(depth, nearest_p["depths"], nearest_p["temperatures"]))
+                model_error = round(abs(obs_t_at_depth - exact_temp), 2)
+                if model_error >= 2.0:
+                    anomaly_status = f"Significant Thermal Divergence (+{model_error:.2f}°C)"
+                elif model_error >= 1.0:
+                    anomaly_status = f"Moderate Thermal Inversion (+{model_error:.2f}°C)"
+                else:
+                    anomaly_status = f"Nominal Ocean Stratification (Δ {model_error:.2f}°C)"
 
         return {
             "coordinate": {
@@ -364,9 +371,9 @@ def get_ocean_dossier(
 @router.post("/ai/analyze")
 def run_ai_grounded_analysis(payload: AiQueryRequest, request: Request):
     """
-    Grounded Ocean Analyst AI (PRD Section 21-23).
-    Evaluates real mathematical residuals against NEMO model, Argo observations,
-    and tropical cyclone intensification risk. Zero hallucination.
+    Grounded Ocean Analyst AI.
+    Evaluates real mathematical residuals against numerical model and in-situ Argo observations.
+    Strictly zero hallucination: honestly reports when observations are present or absent.
     """
     nc_service = request.app.state.nc_service
     argo_service = request.app.state.argo_service
@@ -381,37 +388,62 @@ def run_ai_grounded_analysis(payload: AiQueryRequest, request: Request):
         lat_min=lat - 2.5, lat_max=lat + 2.5, lon_min=lon - 2.5, lon_max=lon + 2.5
     ) if argo_service.is_loaded else []
 
-    obs_val = 28.4
     model_val = float(np.interp(depth, m_depths, [v if v is not None else 26.5 for v in m_vals]))
-    if nearby and nearby[0].get("temperatures"):
-        obs_val = float(np.interp(depth, nearby[0]["depths"], nearby[0]["temperatures"]))
 
-    residual = round(obs_val - model_val, 2)
-    confidence = 88 if len(nearby) > 0 else 74
-    severity = "CRITICAL" if abs(residual) > 2.0 else "WARNING" if abs(residual) > 1.0 else "NOMINAL"
-
-    if "cyclone" in payload.query.lower() or "anomaly" in payload.query.lower() or abs(residual) > 1.5:
-        summary_title = f"Subsurface Thermal Anomaly Detected (+{residual}°C at {depth}m)"
-        narrative = (
-            f"Ground truth in-situ Argo observations at {abs(lat):.2f}°N, {abs(lon):.2f}°E reveal an observed "
-            f"subsurface temperature of {obs_val:.1f}°C, whereas the NEMO numerical model forecasted {model_val:.1f}°C. "
-            f"This represents a significant positive residual of +{residual:.1f}°C between 60m and 180m depth. "
-            f"This heat accumulation is not visible in standard infrared surface satellite scans (SST), but indicates "
-            f"a high Ocean Thermal Energy (TCHP) pool capable of driving rapid tropical cyclone intensification."
-        )
-        recommendation = (
-            "1. Trigger high-frequency profiling on adjacent Argo floats via INCOIS satellite telemetry.\n"
-            "2. Assimilate subsurface temperature residuals into next operational NEMO forecast cycle.\n"
-            "3. Issue operational ocean state advisory to IMD Tropical Cyclone Warning Center."
-        )
+    if nearby and nearby[0].get("temperatures") and nearby[0].get("depths"):
+        nearest_f = nearby[0]
+        obs_val = float(np.interp(depth, nearest_f["depths"], nearest_f["temperatures"]))
+        residual = round(obs_val - model_val, 2)
+        has_insitu = True
+        primary_float_id = nearest_f["platform_id"]
+        confidence = 92 if abs(residual) > 1.5 else 88
     else:
-        summary_title = f"Nominal Ocean State Alignment (Residual {residual:+.2f}°C)"
+        obs_val = None
+        residual = None
+        has_insitu = False
+        primary_float_id = None
+        confidence = 72
+
+    if has_insitu:
+        if abs(residual) >= 1.5:
+            severity = "CRITICAL"
+            summary_title = f"Significant Subsurface Thermal Divergence (+{residual}°C at {depth}m)"
+            narrative = (
+                f"In-situ observation from Argo float #{primary_float_id} at {abs(lat):.2f}°N, {abs(lon):.2f}°E "
+                f"measures a temperature of {obs_val:.2f}°C at {depth}m depth, compared to the numerical model "
+                f"estimate of {model_val:.2f}°C (residual of {residual:+.2f}°C). "
+                f"This elevated subsurface heat content indicates a potential marine heatwave or barrier layer displacement."
+            )
+            recommendation = (
+                "1. Increase sampling frequency for adjacent profiling floats via INCOIS telemetry.\n"
+                "2. Flag isopycnal residual for assimilation into next numerical forecast cycle.\n"
+                "3. Monitor Tropical Cyclone Heat Potential (TCHP) in surrounding quadrant."
+            )
+        elif abs(residual) >= 0.8:
+            severity = "WARNING"
+            summary_title = f"Moderate Thermal Gradient Variation (Δ {residual:+.2f}°C at {depth}m)"
+            narrative = (
+                f"In-situ Argo float #{primary_float_id} records {obs_val:.2f}°C versus model estimate {model_val:.2f}°C. "
+                f"Moderate divergence observed, likely associated with seasonal thermocline displacement."
+            )
+            recommendation = "Continue standard surveillance cycle. Re-evaluate on next operational forecast run."
+        else:
+            severity = "NOMINAL"
+            summary_title = f"Model Reanalysis Concordant with Observations (Residual {residual:+.2f}°C)"
+            narrative = (
+                f"At {abs(lat):.2f}°N, {abs(lon):.2f}°E ({depth}m depth), the numerical model estimate ({model_val:.2f}°C) "
+                f"closely aligns with in-situ Argo float #{primary_float_id} ({obs_val:.2f}°C), within normal operational error (±0.5°C)."
+            )
+            recommendation = "Continue nominal surveillance cycle. Advective transport and stratification parameters remain stable."
+    else:
+        severity = "NOMINAL"
+        summary_title = f"Model Forecast Assessment: {model_val:.2f}°C at {depth}m"
         narrative = (
-            f"At coordinates {abs(lat):.2f}°N, {abs(lon):.2f}°E at {depth}m depth, the numerical model output "
-            f"({model_val:.1f}°C) closely tracks in-situ observation values ({obs_val:.1f}°C). "
-            f"Residual variance remains within standard experimental error bounds (±0.5°C)."
+            f"At coordinates {abs(lat):.2f}°N, {abs(lon):.2f}°E ({depth}m depth), the numerical model forecasts {model_val:.2f}°C. "
+            f"No active in-situ profiling floats are currently within range (250km) to provide direct ground-truth validation. "
+            f"Assessment is derived from numerical ocean reanalysis equations without direct in-situ comparison."
         )
-        recommendation = "Continue nominal surveillance cycle. Model physics and advective current parameters are consistent."
+        recommendation = "Deploy or redirect autonomous profiling floats toward this quadrant to establish observational validation."
 
     return {
         "query": payload.query,
@@ -421,14 +453,14 @@ def run_ai_grounded_analysis(payload: AiQueryRequest, request: Request):
         "title": summary_title,
         "scientific_narrative": narrative,
         "evidence": {
-            "model_value": model_val,
-            "observed_value": obs_val,
-            "residual_delta": residual,
+            "model_value": round(model_val, 2),
+            "observed_value": round(obs_val, 2) if obs_val is not None else None,
+            "residual_delta": round(residual, 2) if residual is not None else None,
             "unit": "°C",
             "depth_range": f"{int(max(0, depth - 40))}m – {int(depth + 60)}m",
             "supporting_argo_count": len(nearby),
             "model_dataset": "INCOIS NEMO-ROMS 4D Reanalysis (8km)",
-            "primary_float_id": nearby[0]["platform_id"] if nearby else "2902345"
+            "primary_float_id": primary_float_id
         },
         "recommendations": recommendation
     }

@@ -31,6 +31,9 @@ import GlobalSearchModal from './components/Panels/GlobalSearchModal';
 import AiAnalystModal from './components/Panels/AiAnalystModal';
 import ExplainabilityToggle, { type ExplainMode } from './components/Controls/ExplainabilityToggle';
 import HoverSounderHUD from './components/Controls/HoverSounderHUD';
+import DataSourceBadge from './components/Controls/DataSourceBadge';
+import DataProvenanceModal from './components/Panels/DataProvenanceModal';
+import ViewportControls from './components/Controls/ViewportControls';
 import { useOceanData } from './hooks/useOceanData';
 import { useCurrentVectors } from './hooks/useCurrentVectors';
 import { useArgoData } from './hooks/useArgoData';
@@ -93,6 +96,8 @@ function App() {
   const [explainMode, setExplainMode] = useState<ExplainMode>('citizen');
   const [hoverCoord, setHoverCoord] = useState<{ lat: number; lon: number } | null>(null);
   const [cameraPitch, setCameraPitch] = useState<number>(50);
+  const [provenanceOpen, setProvenanceOpen] = useState(false);
+  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
 
   // Vertical Profile HUD state matching Image 1
   const [profileHudData, setProfileHudData] = useState<{
@@ -302,29 +307,30 @@ function App() {
 
   return (
     <div className="app">
-      {/* OSIRIS Command & Control Top Bar */}
+      {/* Scientific Ocean Intelligence Header */}
       <header className="top-bar">
-        <div className="logo">
-          <div className="logo-hex">⬡</div>
-          <div className="logo-text">
-            <h1>OCEAN-X</h1>
-            <span className="logo-subtitle">3D OCEAN INTELLIGENCE // SIH26067</span>
+        <div className="top-bar-left">
+          <div className="logo">
+            <div className="logo-hex">⬡</div>
+            <div className="logo-text">
+              <h1>OCEAN-X</h1>
+              <span className="logo-subtitle">SCIENTIFIC 3D OCEAN WORKSTATION</span>
+            </div>
           </div>
-          <span className="c2-live-indicator">● LIVE</span>
+          
+          <DataSourceBadge />
+
+          {/* Global Search Bar (⌘K / Ctrl+K) */}
+          <div className="global-search-bar" onClick={() => setSearchModalOpen(true)}>
+            <span className="search-bar-icon">⌕</span>
+            <span className="search-bar-placeholder">Search domain, platform, variable...</span>
+            <span className="search-bar-kbd">⌘K</span>
+          </div>
         </div>
 
-        {/* FR-15: Dual-Lens Citizen / Scientist Explainability Switch */}
-        <ExplainabilityToggle mode={explainMode} onChange={setExplainMode} />
-
-        {/* Global Search Bar (⌘K / Ctrl+K) */}
-        <div className="global-search-bar" onClick={() => setSearchModalOpen(true)}>
-          <span className="search-bar-icon">🔍</span>
-          <span className="search-bar-placeholder">Search region, platform, variable, anomaly...</span>
-          <span className="search-bar-kbd">⌘K</span>
-        </div>
-
-        {/* Quick Camera Sector Jump Strip */}
+        {/* View Lens Switcher & Ocean Basin Presets */}
         <div className="top-bar-center">
+          <ExplainabilityToggle mode={explainMode} onChange={setExplainMode} />
           <SectorNavigator
             currentSector={currentSector}
             onSelectSector={handleSelectSector}
@@ -332,96 +338,108 @@ function App() {
         </div>
 
         <div className="top-bar-right">
-          <span className="utc-clock">⏱ {utcTime}</span>
+          <span className="utc-clock">{utcTime}</span>
 
-          {/* Camera Horizon Tilt Angle (15° to 75°) */}
-          <div className="c2-pitch-control" title="Google Earth Horizon Tilt Angle (15° to 75°)">
-            <span className="pitch-label">TILT {cameraPitch}°</span>
-            <input
-              type="range"
-              min="15"
-              max="75"
-              value={cameraPitch}
-              onChange={(e) => setCameraPitch(parseInt(e.target.value))}
-              className="pitch-slider"
-            />
-          </div>
-
-          {/* Anomaly Hero Badge */}
+          {/* Significant Anomaly Alert Badge */}
           <button
             className="c2-badge anomaly-alert-badge anomaly-clickable"
             onClick={() => handleSelectSector('anomaly_target')}
-            title="Target Subsurface Marine Heatwave Anomaly #2902345 (Key: 4)"
+            title="Inspect Subsurface Thermal Anomaly #2902345 (Key: 4)"
           >
-            🚨 1 CRITICAL ANOMALY
+            1 SIGNIFICANT ANOMALY
           </button>
 
-          {/* AI Analyst Trigger */}
-          <button
-            className="c2-badge ai-btn"
-            onClick={() => setAiModalOpen(true)}
-            title="Open Grounded Ocean Analyst AI (Key: A / I)"
-          >
-            ✦ ANALYZE
-          </button>
-
-          {/* Spatial Tools Shortcuts */}
+          {/* Data Provenance & Methodology */}
           <button
             className="c2-badge tool-btn"
-            onClick={() => setTransectModalOpen(true)}
-            title="Open Ocean Transect Cross-Section (Key: T)"
+            onClick={() => setProvenanceOpen(true)}
+            title="View Data Provenance, Grid Resolution & ML Methods"
           >
-            ⟂ TRANSECT
+            PROVENANCE
           </button>
 
-          <button
-            className="c2-badge tool-btn"
-            onClick={() => setRegionModalOpen(true)}
-            title="Open Bounding Box Region Analytics (Key: R)"
-          >
-            ⬚ REGION
-          </button>
+          {/* Spatial & AI Analysis Tools Dropdown */}
+          <div className="tools-dropdown-container">
+            <button
+              className={`c2-badge tool-btn ${toolsMenuOpen ? 'active' : ''}`}
+              onClick={() => setToolsMenuOpen(!toolsMenuOpen)}
+              title="Spatial & ML Analysis Tools"
+            >
+              ANALYSIS ▾
+            </button>
+            {toolsMenuOpen && (
+              <div className="tools-dropdown-menu" onClick={() => setToolsMenuOpen(false)}>
+                <button className="tools-menu-item" onClick={() => setTransectModalOpen(true)}>
+                  <span className="item-icon">⟂</span>
+                  <div className="item-text">
+                    <span className="item-title">Vertical Transect</span>
+                    <span className="item-desc">2D depth-distance cross-section (T)</span>
+                  </div>
+                </button>
+                <button className="tools-menu-item" onClick={() => setRegionModalOpen(true)}>
+                  <span className="item-icon">⬚</span>
+                  <div className="item-text">
+                    <span className="item-title">Basin Analytics</span>
+                    <span className="item-desc">Bounding box stats & histogram (R)</span>
+                  </div>
+                </button>
+                <button className="tools-menu-item" onClick={() => setAiModalOpen(true)}>
+                  <span className="item-icon">✦</span>
+                  <div className="item-text">
+                    <span className="item-title">Grounded AI Analyst</span>
+                    <span className="item-desc">Residual-backed diagnosis (A)</span>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
 
-          {/* In-Situ Fleet Count */}
+          {/* In-Situ Argo Profiler Network Count */}
           <button
             className="c2-badge floats fleet-btn"
             onClick={() => setFleetOpen(!fleetOpen)}
-            title="Toggle Float Fleet Drawer (Key: F)"
+            title="Inspect Active In-Situ Argo Profilers (Key: F)"
           >
-            📍 {argoProfiles.length} FLOATS
+            {argoProfiles.length} ARGO PROFILERS
           </button>
 
-          {/* Mission Briefing */}
+          {/* Scientific Briefing */}
           <button
             className="c2-badge briefing-btn"
             onClick={() => setBriefingOpen(true)}
-            title="SIH 2026 PS26067 Mission Briefing & Evaluation Guide (Key: B)"
+            title="SIH26067 Scientific Brief & Evaluation Guide (Key: B)"
           >
-            📖 BRIEFING
+            BRIEF
           </button>
 
-          {/* Snapshot */}
+          {/* Snapshot Export */}
           <button
             className="c2-badge snapshot-btn"
             onClick={handleCaptureSnapshot}
-            title="Capture High-Resolution WebGL Canvas Snapshot"
+            title="Export High-Resolution Canvas"
           >
-            📸
+            EXPORT
           </button>
 
-          {/* Hotkeys Matrix */}
+          {/* Keyboard Shortcuts Matrix */}
           <button
             className="c2-badge hotkeys-btn"
             onClick={() => setShowHotkeys(!showHotkeys)}
-            title="Toggle Keyboard Shortcuts HUD (Key: ?)"
+            title="Keyboard Shortcuts Guide (Key: ?)"
           >
-            ⌨
+            ?
           </button>
         </div>
       </header>
 
       {/* 3D Ocean Viewport */}
       <main className="viewport">
+        {/* Google Earth Style On-Screen Viewport Navigation Controls */}
+        <ViewportControls
+          cameraPitch={cameraPitch}
+          onPitchChange={setCameraPitch}
+          onResetNadir={() => setCameraPitch(90)}
+        />
         {/* Persistent Left Layer Rail (PRD §6) */}
         <LayerRail
           variable={variable}
@@ -644,6 +662,12 @@ function App() {
           isOpen={briefingOpen}
           onClose={() => setBriefingOpen(false)}
           onJumpToAnomaly={() => handleSelectSector('anomaly_target')}
+        />
+
+        {/* Data Provenance & Scientific Methodology Modal */}
+        <DataProvenanceModal
+          isOpen={provenanceOpen}
+          onClose={() => setProvenanceOpen(false)}
         />
 
         {/* Core Differentiator: Model vs Reality Comparison Drawer */}

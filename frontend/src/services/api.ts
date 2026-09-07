@@ -1,6 +1,8 @@
 /**
  * API client for OCEAN-X backend.
- * Features automatic client-side fallback simulation for standalone Vercel deployments.
+ * Features transparent data source modes:
+ * - 'live': Live streaming from INCOIS NetCDF FastAPI backend
+ * - 'demo': Client-side simulation fallback when backend is unreachable or explicitly requested
  */
 import axios from 'axios';
 import type {
@@ -38,22 +40,72 @@ const api = axios.create({
   timeout: 8000,
 });
 
+export type DataSourceMode = 'live' | 'demo';
+
+let currentMode: DataSourceMode = 'live';
+let forceDemoMode = false;
+const modeListeners = new Set<(mode: DataSourceMode) => void>();
+
+export function getDataSourceMode(): DataSourceMode {
+  return currentMode;
+}
+
+export function setForceDemoMode(enable: boolean) {
+  forceDemoMode = enable;
+  currentMode = enable ? 'demo' : 'live';
+  modeListeners.forEach((fn) => fn(currentMode));
+}
+
+export function onDataSourceModeChange(listener: (mode: DataSourceMode) => void) {
+  modeListeners.add(listener);
+  return () => {
+    modeListeners.delete(listener);
+  };
+}
+
+function notifySuccess() {
+  if (forceDemoMode) return;
+  if (currentMode !== 'live') {
+    currentMode = 'live';
+    modeListeners.forEach((fn) => fn('live'));
+  }
+}
+
+function notifyFallback() {
+  if (currentMode !== 'demo') {
+    currentMode = 'demo';
+    modeListeners.forEach((fn) => fn('demo'));
+  }
+}
+
 /** Health check */
 export async function getHealth() {
+  if (forceDemoMode) {
+    notifyFallback();
+    return { status: 'healthy_simulation', app_name: 'OCEAN-X (Simulation Mode)' };
+  }
   try {
     const res = await api.get('/api/health');
+    notifySuccess();
     return res.data;
   } catch {
-    return { status: 'healthy_fallback', app_name: 'OCEAN-X (Client Simulation)' };
+    notifyFallback();
+    return { status: 'healthy_simulation', app_name: 'OCEAN-X (Simulation Mode)' };
   }
 }
 
 /** Get model dataset info */
 export async function getModelInfo(): Promise<DatasetInfo> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockModelInfo();
+  }
   try {
     const res = await api.get('/api/model/info');
+    notifySuccess();
     return res.data;
   } catch {
+    notifyFallback();
     return getMockModelInfo();
   }
 }
@@ -64,6 +116,10 @@ export async function getModelSlice(
   depth: number = 0,
   timeIndex: number = 0
 ): Promise<{ data: Float32Array; metadata: Record<string, string> }> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockModelSlice(variable, depth, timeIndex);
+  }
   try {
     const res = await api.get('/api/model/slice', {
       params: { variable, depth, time_index: timeIndex },
@@ -77,11 +133,13 @@ export async function getModelSlice(
       if (val) metadata[key] = val;
     });
 
+    notifySuccess();
     return {
       data: new Float32Array(res.data),
       metadata,
     };
   } catch {
+    notifyFallback();
     return getMockModelSlice(variable, depth, timeIndex);
   }
 }
@@ -93,12 +151,8 @@ export async function getModelProfile(
   lon: number,
   timeIndex: number = 0
 ) {
-  try {
-    const res = await api.get('/api/model/profile', {
-      params: { variable, lat, lon, time_index: timeIndex },
-    });
-    return res.data;
-  } catch {
+  if (forceDemoMode) {
+    notifyFallback();
     const depths = [0, 5, 10, 20, 30, 50, 75, 100, 150, 200, 250, 300, 400, 500];
     const isAnomaly = Math.abs(lat - 14.5) < 3 && Math.abs(lon - 84.8) < 3;
     const values = depths.map((d) => {
@@ -106,14 +160,24 @@ export async function getModelProfile(
       const boost = isAnomaly && d >= 50 && d <= 200 ? 3.1 : 0;
       return Number((base + boost).toFixed(2));
     });
-    return {
-      latitude: lat,
-      longitude: lon,
-      variable,
-      time_index: timeIndex,
-      depths,
-      values,
-    };
+    return { latitude: lat, longitude: lon, variable, time_index: timeIndex, depths, values };
+  }
+  try {
+    const res = await api.get('/api/model/profile', {
+      params: { variable, lat, lon, time_index: timeIndex },
+    });
+    notifySuccess();
+    return res.data;
+  } catch {
+    notifyFallback();
+    const depths = [0, 5, 10, 20, 30, 50, 75, 100, 150, 200, 250, 300, 400, 500];
+    const isAnomaly = Math.abs(lat - 14.5) < 3 && Math.abs(lon - 84.8) < 3;
+    const values = depths.map((d) => {
+      const base = 29.1 * Math.exp(-d / 180) + 5.0;
+      const boost = isAnomaly && d >= 50 && d <= 200 ? 3.1 : 0;
+      return Number((base + boost).toFixed(2));
+    });
+    return { latitude: lat, longitude: lon, variable, time_index: timeIndex, depths, values };
   }
 }
 
@@ -121,22 +185,34 @@ export async function getModelProfile(
 export async function getArgoProfiles(
   latMin = 0, latMax = 28, lonMin = 60, lonMax = 100
 ): Promise<{ profiles: ArgoProfileSummary[]; count: number }> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockArgoProfiles();
+  }
   try {
     const res = await api.get('/api/observations/argo', {
       params: { lat_min: latMin, lat_max: latMax, lon_min: lonMin, lon_max: lonMax },
     });
+    notifySuccess();
     return res.data;
   } catch {
+    notifyFallback();
     return getMockArgoProfiles();
   }
 }
 
 /** Get a specific Argo profile with full data */
 export async function getArgoProfile(profileId: string): Promise<ArgoProfile> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockArgoProfile(profileId);
+  }
   try {
     const res = await api.get(`/api/observations/argo/${profileId}`);
+    notifySuccess();
     return res.data;
   } catch {
+    notifyFallback();
     return getMockArgoProfile(profileId);
   }
 }
@@ -148,12 +224,18 @@ export async function compareProfile(
   timeIndex: number = 0,
   anomalyThreshold: number = 1.0
 ): Promise<ComparisonResponse> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockComparison(profileId, variable, timeIndex, anomalyThreshold);
+  }
   try {
     const res = await api.get(`/api/compare/profile/${profileId}`, {
       params: { variable, time_index: timeIndex, anomaly_threshold: anomalyThreshold },
     });
+    notifySuccess();
     return res.data;
   } catch {
+    notifyFallback();
     return getMockComparison(profileId, variable, timeIndex, anomalyThreshold);
   }
 }
@@ -164,32 +246,50 @@ export async function getCurrentVectors(
   timeIndex: number = 0,
   subsample: number = 5
 ) {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockCurrentVectors(depth, timeIndex);
+  }
   try {
     const res = await api.get('/api/model/currents', {
       params: { depth, time_index: timeIndex, subsample },
     });
+    notifySuccess();
     return res.data;
   } catch {
+    notifyFallback();
     return getMockCurrentVectors(depth, timeIndex);
   }
 }
 
 /** Get time step dates */
 export async function getTimeInfo(): Promise<{ dates: string[]; count: number }> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockTimeInfo();
+  }
   try {
     const res = await api.get('/api/model/time_info');
+    notifySuccess();
     return res.data;
   } catch {
+    notifyFallback();
     return getMockTimeInfo();
   }
 }
 
 /** Get fleet-wide ML anomaly intelligence summary */
 export async function getAnomalySummary(): Promise<AnomalyFleetSummary> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockAnomalySummary();
+  }
   try {
     const res = await api.get('/api/anomaly/summary');
+    notifySuccess();
     return res.data;
   } catch {
+    notifyFallback();
     return getMockAnomalySummary();
   }
 }
@@ -201,12 +301,18 @@ export async function detectAnomaly(
   threshold: number = 1.0,
   timeIndex: number = 0
 ): Promise<AnomalyAnalysisResponse> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockDetectAnomaly(profileId, variable, threshold, timeIndex);
+  }
   try {
     const res = await api.get(`/api/anomaly/detect/${profileId}`, {
       params: { variable, threshold, time_index: timeIndex },
     });
+    notifySuccess();
     return res.data;
   } catch {
+    notifyFallback();
     return getMockDetectAnomaly(profileId, variable, threshold, timeIndex);
   }
 }
@@ -218,12 +324,18 @@ export async function getOceanDossier(
   depth: number = 0,
   timeIndex: number = 0
 ): Promise<OceanDossierResponse> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockDossier(lat, lon, depth);
+  }
   try {
     const res = await api.get('/api/analytics/dossier', {
       params: { lat, lon, depth, time_index: timeIndex },
     });
+    notifySuccess();
     return res.data;
   } catch {
+    notifyFallback();
     return getMockDossier(lat, lon, depth);
   }
 }
@@ -238,6 +350,10 @@ export async function calculateRegionStats(params: {
   time_index?: number;
   variable?: string;
 }): Promise<RegionStatsResponse> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockRegionStats(params);
+  }
   try {
     const res = await api.post('/api/analytics/region/stats', {
       lat_min: params.lat_min,
@@ -248,8 +364,10 @@ export async function calculateRegionStats(params: {
       time_index: params.time_index ?? 0,
       variable: params.variable ?? 'thetao',
     });
+    notifySuccess();
     return res.data;
   } catch {
+    notifyFallback();
     return getMockRegionStats(params);
   }
 }
@@ -264,6 +382,10 @@ export async function calculateTransect(params: {
   time_index?: number;
   num_samples?: number;
 }): Promise<TransectResponse> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockTransect(params);
+  }
   try {
     const res = await api.post('/api/analytics/transect', {
       lat1: params.lat1,
@@ -274,8 +396,10 @@ export async function calculateTransect(params: {
       time_index: params.time_index ?? 0,
       num_samples: params.num_samples ?? 25,
     });
+    notifySuccess();
     return res.data;
   } catch {
+    notifyFallback();
     return getMockTransect(params);
   }
 }
@@ -289,6 +413,10 @@ export async function queryAiAnalyst(params: {
   profile_id?: string;
   time_index?: number;
 }): Promise<AiAnalystResponse> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockAiAnalyst(params);
+  }
   try {
     const res = await api.post('/api/analytics/ai/analyze', {
       query: params.query,
@@ -298,8 +426,10 @@ export async function queryAiAnalyst(params: {
       profile_id: params.profile_id,
       time_index: params.time_index ?? 0,
     });
+    notifySuccess();
     return res.data;
   } catch {
+    notifyFallback();
     return getMockAiAnalyst(params);
   }
 }
