@@ -1,0 +1,1907 @@
+<USER_REQUEST>
+OCEAN-X — Product Requirements Document
+Product name
+
+OCEAN-X
+
+Product subtitle
+
+Interactive 3D Ocean Intelligence & Visualization Platform
+
+SIH Problem Statement
+
+SIH26067 — Develop a web-based interactive 3D visualization platform that integrates numerical ocean model outputs and in-situ observations.
+
+Core product idea
+
+OCEAN-X turns complex ocean datasets into an interactive 3D digital ocean where users can explore model predictions, real observations, differences, anomalies and ocean behavior through one clean interface.
+
+The key differentiation should NOT be:
+
+"We made a 3D ocean visualization."
+
+It should be:
+
+"We created a digital ocean environment that lets scientists move from MODEL → OBSERVATION → COMPARISON → ANOMALY → INSIGHT."
+
+1. PRODUCT VISION
+
+Build a browser-based scientific visualization platform inspired by the usability of modern systems such as Google Earth and OSIRIS, but specifically designed for ocean science.
+
+The platform should allow a user to:
+
+Open a 3D ocean environment.
+Select a variable.
+Select depth.
+Select time.
+Visualize numerical model data.
+Overlay Argo/Glider/CTD/BGC observations.
+Click an observation platform.
+View its depth profile.
+Compare observed values against model values.
+Identify spatial/temporal anomalies.
+Draw a region or transect.
+Generate scientific statistics.
+Ask an ocean-specific AI analyst for an explanation.
+Create/share an investigation.
+2. DESIGN PHILOSOPHY
+
+The UI should feel:
+
+Scientific + Premium + Minimal + Spatial + Modern
+
+NOT:
+
+generic dashboard
+government portal
+overly colorful GIS application
+cyber-security interface
+cluttered engineering software
+ordinary 3D globe
+Visual inspiration
+
+Use the interaction philosophy of OSIRIS:
+
+full-screen visualization
+floating panels
+toggleable layers
+contextual information
+right-click investigation
+live status
+search
+intelligence panels
+
+OSIRIS itself uses a map-first interface where controls float over the visualization rather than forcing users through separate dashboard pages.
+
+But OCEAN-X should have a much cleaner scientific aesthetic.
+
+3. UI DESIGN SYSTEM
+Background
+
+Use a very dark ocean-inspired interface.
+
+Suggested:
+
+Background:
+#061018
+
+Panel:
+#0B1822
+
+Panel elevated:
+#10232F
+
+Border:
+rgba(255,255,255,0.08)
+
+Primary text:
+#E8F1F5
+
+Secondary text:
+#8DA5B2
+
+Accent:
+cyan / aqua
+
+Warning:
+amber
+
+Critical:
+red
+
+Don't overuse cyan.
+
+The visualization itself should provide most of the color.
+
+4. MAIN APPLICATION
+
+The application should be one immersive workspace.
+
+No traditional:
+
+Home
+Dashboard
+About
+Analytics
+Settings
+
+Instead:
+
+                    OCEAN-X
+ ┌─────────────────────────────────────────────────────┐
+ │ Search ocean...        Date       LIVE     ⌘K       │
+ ├───┐                                             ┌───┤
+ │   │                                             │   │
+ │ L │                                             │ I │
+ │ A │                                             │ N │
+ │ Y │             3D OCEAN                       │ S │
+ │ E │                                             │ I │
+ │ R │                                             │ G │
+ │ S │                                             │ H │
+ │   │                                             │ T │
+ └───┘                                             └───┘
+             ─────── TIME CONTROL ───────
+
+The 3D ocean is the primary product.
+
+5. TOP BAR
+
+Minimal top navigation.
+
+Left
+
+OCEAN-X
+
+Small status indicator:
+
+● LIVE
+Center
+
+Global search.
+
+Placeholder:
+
+Search region, platform, variable or coordinate...
+
+Examples:
+
+Bay of Bengal
+Argo 2902345
+temperature 100m
+29°C regions
+anomalies near Odisha
+Right
+
+Controls:
+
+◷ Time
+Layers
+Analysis
+AI
+Share
+?
+6. LEFT LAYER PANEL
+
+This is inspired by OSIRIS's layer panel, but specialized for ocean science. OSIRIS uses a persistent layer rail for enabling/disabling individual feeds.
+
+Panel:
+
+DATA
+MODEL
+☑ Temperature
+☐ Salinity
+☐ Current
+☐ Chlorophyll
+
+OBSERVATIONS
+☑ Argo
+☐ Glider
+☐ CTD
+☐ BGC
+☐ Buoys
+
+SATELLITE
+☐ SST
+☐ Ocean Color
+☐ Sea Level Anomaly
+
+ENVIRONMENT
+☐ Wind
+☐ Rainfall
+☐ Waves
+☐ Cyclones
+☐ Earthquakes
+7. VARIABLE CONTROL
+
+When clicking:
+
+Temperature
+
+Open compact control:
+
+TEMPERATURE
+
+Depth
+[ 100 m ]
+
+Range
+[ 20.0 ] — [ 32.0 ]
+
+Scale
+● Linear
+○ Log
+
+Opacity
+━━━━━━━●━━
+
+Color
+────────────
+Cold     Hot
+
+Same architecture for:
+
+temperature
+salinity
+velocity
+chlorophyll
+oxygen
+sea-level anomaly
+8. DEPTH CONTROL
+
+Bottom-left or floating vertical control.
+
+DEPTH
+
+Surface
+│
+│
+│
+● 100 m
+│
+│
+│
+500 m
+│
+│
+1000 m
+
+User can drag.
+
+The entire 3D visualization updates.
+
+9. TIME MACHINE
+
+This is one of the most important features.
+
+Bottom timeline:
+
+◀     01 Aug       05 Aug       10 Aug       15 Aug     ▶
+
+        ━━━━━━━━━━━━━●━━━━━━━━━━━━━━
+
+        10 Aug 2026 14:00 UTC
+
+        ▶ PLAY
+
+Controls:
+
+Play
+Pause
+Step -
+Step +
+Speed
+
+Possible speeds:
+
+0.5x
+1x
+2x
+5x
+10x
+10. 3D OCEAN ENGINE
+
+This is the centerpiece.
+
+The visualization should support:
+
+3D volume
+
+Temperature/salinity fields rendered volumetrically.
+
+Depth slice
+
+Horizontal plane at:
+
+0m
+10m
+50m
+100m
+200m
+500m
+Isosurface
+
+Example:
+
+Temperature = 29°C
+
+Render the 29°C boundary as a 3D surface.
+
+Current vectors
+
+Animated particles:
+
+→ → ↗ ↗ ↑
+
+representing ocean currents.
+
+Vertical exaggeration
+
+Control:
+
+Vertical exaggeration
+
+1x ━━━━━●━━━━ 20x
+11. OBSERVATION PLATFORMS
+
+Argo/Glider/CTD should be first-class objects.
+
+Example:
+
+      ●
+     Argo
+
+Click it.
+
+Open right-side card:
+
+ARGO 2902345
+
+Location
+12.43°N
+87.21°E
+
+Last update
+10 Aug 2026 13:42 UTC
+
+Depth
+1,000 m
+
+Profiles
+184
+
+Variables
+Temperature
+Salinity
+Pressure
+
+Button:
+
+OPEN PROFILE
+
+12. PROFILE VIEW
+
+This is mandatory for PS67.
+
+Clicking an Argo/Glider opens:
+
+ARGO PROFILE
+
+Temperature
+°C
+
+0m    ┤     ●
+100m  ┤    ●
+200m  ┤   ●
+300m  ┤  ●
+500m  ┤ ●
+800m  ┤  ●
+1000m ┤ ●
+
+        Depth →
+
+Tabs:
+
+Temperature
+Salinity
+Oxygen
+Chlorophyll
+
+Also display:
+
+Observed
+Model
+Difference
+13. MODEL VS OBSERVATION
+THIS IS THE MAIN DIFFERENTIATOR.
+
+When an observation is selected:
+
+MODEL vs OBSERVATION
+
+Example:
+
+Location
+12.43°N, 87.21°E
+
+Depth
+100m
+
+Time
+10 Aug 2026 13:42 UTC
+
+TEMPERATURE
+
+Observed       28.4°C
+Model          27.1°C
+
+Difference     +1.3°C
+
+Then:
+
+MODEL AGREEMENT
+
+████████████░░░░  78%
+
+Moderate deviation
+
+The user should immediately understand:
+
+"The model predicts 27.1°C, but the Argo observed 28.4°C."
+
+That is a much stronger SIH story than simply showing points on a globe.
+
+14. ANOMALY ENGINE
+
+Create a dedicated layer:
+
+OCEAN ANOMALIES
+
+Display:
+
+● Normal
+● Moderate
+● Significant
+● Extreme
+
+Anomaly can initially be based on:
+
+Observation - Model
+
+and later:
+
+Historical mean deviation
+
+Example:
+
+⚠ TEMPERATURE ANOMALY
+
+Bay of Bengal
+
++1.8°C
+
+Depth: 50–120m
+
+Confidence: 87%
+
+Evidence:
+• 14 Argo profiles
+• Model deviation
+• Historical baseline
+15. OCEAN REGION DOSSIER
+
+This is the feature I would strongly borrow conceptually from OSIRIS.
+
+OSIRIS allows users to right-click a location and receive a composite Region Dossier covering the feeds relevant to that location.
+
+OCEAN-X should do:
+
+Right-click anywhere in ocean
+
+Show:
+
+OCEAN REGION
+
+12.4°N
+87.2°E
+
+──────────────────
+
+TEMPERATURE
+28.4°C
+
+SALINITY
+34.8 PSU
+
+CURRENT
+0.72 m/s
+NE
+
+DEPTH
+100m
+
+OBSERVATIONS
+14 Argo
+2 Gliders
+
+MODEL ERROR
++1.3°C
+
+ANOMALY
+⚠ Significant
+
+Buttons:
+
+COMPARE
+PROFILE
+TRANSECT
+EXPLORE REGION
+
+This could become one of the strongest demo moments.
+
+16. DRAW & ANALYZE
+
+Add a toolbar:
+
+Select
+Measure
+Draw region
+Draw transect
+Region Analysis
+
+User draws:
+
+┌───────────────┐
+│               │
+│ Bay of Bengal │
+│               │
+└───────────────┘
+
+OCEAN-X calculates:
+
+REGION ANALYSIS
+
+Area
+1.28M km²
+
+Temperature
+Mean       28.1°C
+Min        25.2°C
+Max        30.4°C
+
+Salinity
+Mean       34.6 PSU
+
+Current
+Mean       0.61 m/s
+
+Observations
+126
+
+Model error
+0.84°C
+
+Anomalies
+7
+17. OCEAN TRANSECT
+
+This is an excellent scientific feature.
+
+User draws a line:
+
+A ───────────────── B
+
+System generates:
+
+TEMPERATURE TRANSECT
+
+Depth
+ 0m  ───────────────────
+100m ───────────────────
+200m ───────────────────
+500m ───────────────────
+
+       A → Distance → B
+
+Tabs:
+
+Temperature
+Salinity
+Oxygen
+Chlorophyll
+
+This makes the platform useful beyond being a "pretty 3D visualization."
+
+18. OCEAN TIME MACHINE
+
+Allow users to compare two timestamps.
+
+Example:
+
+COMPARE TIME
+
+10 AUG 2026
+       VS
+17 AUG 2026
+
+Then show:
+
+TEMPERATURE CHANGE
+
++2.1°C
+
+SALINITY CHANGE
+
+-0.4 PSU
+
+CURRENT CHANGE
+
++0.28 m/s
+
+And visually render the difference field.
+
+19. SATELLITE INTEGRATION
+
+Don't make satellite data another random layer.
+
+Use it to validate ocean conditions.
+
+Example:
+
+MODEL
+       ↓
+OBSERVATION
+       ↓
+SATELLITE
+       ↓
+COMPARISON
+
+Possible layers:
+
+SST
+Ocean color
+Chlorophyll
+Sea level anomaly
+
+This creates a multi-source ocean intelligence system.
+
+20. OSIRIS-STYLE LIVE INTELLIGENCE
+
+The actual OSIRIS architecture demonstrates the value of normalized APIs between external feeds and the visualization layer. Its documentation describes 57 endpoints and 20+ live feeds, with upstream data normalized through API routes before reaching the client.
+
+For OCEAN-X, create:
+
+LIVE STATUS
+
+Bottom-right:
+
+● LIVE
+
+MODEL        4 fields
+ARGO         142
+GLIDERS      27
+BUOYS        38
+SATELLITE    6
+ANOMALIES    4
+
+Clicking it opens:
+
+LIVE DATA STATUS
+
+Argo
+Last update 42 sec ago
+
+Model
+Last update 4 min ago
+
+Satellite
+Last update 11 min ago
+21. OCEAN ANALYST
+
+This is the AI layer.
+
+Do NOT make it a generic chatbot.
+
+Instead:
+
+OCEAN ANALYST
+
+Floating button:
+
+✦ Analyze
+
+Click:
+
+What would you like to investigate?
+
+[ Ask about this region... ]
+
+Examples:
+
+Why is this region anomalous?
+
+Compare model and observations.
+
+What changed during the last 7 days?
+
+Find unusual temperature regions.
+
+Explain the current pattern.
+
+22. AI RESPONSE DESIGN
+
+Example:
+
+OCEAN ANALYST
+
+⚠ Significant temperature anomaly detected.
+
+The selected region shows a
++1.8°C deviation from the model
+between 50–120m depth.
+
+Evidence:
+
+• 14 Argo profiles
+• 3 independent observations
+• Model disagreement: 1.6–2.1°C
+• Persistent for ~4 days
+
+Most affected area:
+12.1–14.3°N
+86.7–89.1°E
+
+Confidence
+87%
+
+Then:
+
+[Show evidence]
+[Compare profiles]
+[View anomaly]
+
+The AI should never invent scientific conclusions.
+
+Every claim should have an underlying dataset/evidence reference.
+
+23. AI ARCHITECTURE
+
+Do not send the entire dataset to an LLM.
+
+Instead:
+
+USER QUESTION
+      ↓
+QUERY INTERPRETER
+      ↓
+DATA RETRIEVAL
+      ↓
+SCIENTIFIC ANALYSIS
+      ↓
+STRUCTURED RESULT
+      ↓
+LLM EXPLANATION
+
+Example:
+
+User:
+Why is this region anomalous?
+
+Backend:
+fetch temperature
+fetch historical baseline
+fetch Argo
+fetch model
+calculate residual
+calculate confidence
+
+↓
+
+LLM
+
+↓
+
+Human-readable explanation
+24. SEARCH
+
+Global search:
+
+⌘K
+
+Search categories:
+
+Regions
+Platforms
+Variables
+Coordinates
+Dates
+Anomalies
+
+Example:
+
+Search:
+Argo 2902345
+
+Results:
+
+ARGO 2902345
+Bay of Bengal
+Last update: 10 Aug
+25. KEYBOARD SHORTCUTS
+
+Borrow the philosophy of OSIRIS's keyboard-driven UI. OSIRIS supports shortcuts for fullscreen, panels, reset, help, and search.
+
+OCEAN-X:
+
+F        Fullscreen
+L        Layers
+A        Analysis
+T        Time
+D        Depth
+I        Insights
+⌘K       Search
+Space    Play/Pause
+Esc      Close
+?        Shortcuts
+26. SHAREABLE INVESTIGATION
+
+Very powerful for demo and future use.
+
+Button:
+
+Share Investigation
+
+Generate URL containing:
+
+location
+depth
+time
+variable
+layers
+camera
+selected observation
+
+Someone opens it and sees exactly the same scientific state.
+
+27. BACKEND ARCHITECTURE
+
+Recommended:
+
+                    DATA SOURCES
+
+     INCOIS       COPERNICUS       ARGO
+        │             │              │
+        └─────────────┼──────────────┘
+                      ↓
+               DATA INGESTION
+                      ↓
+             NORMALIZATION LAYER
+                      ↓
+          ┌───────────┴───────────┐
+          ↓                       ↓
+       MODEL DB              OBSERVATION DB
+          │                       │
+          └───────────┬───────────┘
+                      ↓
+               ANALYSIS ENGINE
+                      ↓
+                API GATEWAY
+                      ↓
+             ┌────────┴────────┐
+             ↓                 ↓
+        3D FRONTEND       AI ANALYST
+28. TECHNOLOGY STACK
+Frontend
+React
+TypeScript
+Next.js
+Three.js
+React Three Fiber
+MapLibre GL
+Tailwind CSS
+shadcn/ui
+Framer Motion
+Backend
+Python
+FastAPI
+Pydantic
+xarray
+NumPy
+SciPy
+Pandas
+Database
+PostgreSQL
+PostGIS
+Cache
+Redis
+Scientific formats
+NetCDF
+CF conventions
+OPeNDAP
+CSV
+JSON
+Deployment
+Docker
+Docker Compose
+Nginx
+29. DATA PIPELINE
+
+Do NOT download massive global datasets into the browser.
+
+Use:
+
+NetCDF
+ ↓
+xarray
+ ↓
+Subset
+ ↓
+Chunk
+ ↓
+Downsample
+ ↓
+Cache
+ ↓
+API
+ ↓
+Browser
+
+For example:
+
+User requests:
+
+Bay of Bengal
+0–500m
+10 Aug
+Temperature
+
+Backend returns ONLY the requested subset.
+
+This is critical for performance.
+
+30. API DESIGN
+
+Example:
+
+GET /api/model/fields
+GET /api/model/temperature
+GET /api/model/salinity
+GET /api/model/currents
+
+GET /api/observations/argo
+GET /api/observations/glider
+GET /api/observations/ctd
+
+GET /api/profile/{platform_id}
+
+GET /api/compare
+GET /api/anomalies
+
+GET /api/region
+GET /api/transect
+
+GET /api/timeseries
+
+POST /api/analysis
+
+POST /api/ai/analyze
+31. NORMALIZED DATA MODEL
+Observation
+Observation {
+  id
+  platformType
+  latitude
+  longitude
+  timestamp
+  depth
+  variable
+  value
+  unit
+  source
+}
+Model Field
+ModelField {
+  dataset
+  variable
+  timestamp
+  latitude
+  longitude
+  depth
+  value
+  unit
+}
+Comparison
+Comparison {
+  observationId
+  modelDataset
+  modelValue
+  observedValue
+  difference
+  percentageDifference
+  confidence
+}
+32. MVP
+
+Don't attempt everything.
+
+Your first working version should contain:
+
+MUST HAVE
+✓ 3D ocean
+✓ Temperature
+✓ Salinity
+✓ Current vectors
+✓ Depth slider
+✓ Time slider
+✓ Argo observations
+✓ Argo profile
+✓ NetCDF ingestion
+✓ Model visualization
+✓ Model vs observation
+✓ Region Dossier
+✓ Basic anomaly detection
+✓ Clean UI
+SECOND PHASE
+Gliders
+CTD
+BGC
+Satellite
+Transects
+Region analytics
+Time comparison
+THIRD PHASE
+Ocean Analyst
+AI explanations
+Alerts
+Historical anomaly detection
+Cyclone context
+Tsunami context
+Advanced analytics
+33. HOMEPAGE / LANDING SCREEN
+
+Don't create a normal SaaS landing page.
+
+Use an animated ocean.
+
+Opening:
+
+                    OCEAN-X
+
+          INTERACTIVE OCEAN INTELLIGENCE
+
+     Explore     Compare     Understand
+
+               [ ENTER OCEAN ]
+
+Background:
+
+Slow 3D ocean animation.
+
+Small live indicator:
+
+● 142 Argo observations
+● 27 Gliders
+● 4 active anomalies
+
+Then enter the workspace.
+
+34. MAIN DEMO SCENARIO
+
+Your SIH judges should see this exact story.
+
+STEP 1
+
+Open OCEAN-X.
+
+Bay of Bengal
+STEP 2
+
+Select:
+
+Temperature
+100m
+
+3D field appears.
+
+STEP 3
+
+Enable:
+
+Argo
+
+Hundreds of observation points appear.
+
+STEP 4
+
+Click an Argo.
+
+Profile appears.
+
+STEP 5
+
+Click:
+
+Compare with Model
+
+Show:
+
+MODEL        27.1°C
+OBSERVED     28.4°C
+
+ERROR        +1.3°C
+STEP 6
+
+Click:
+
+Explain anomaly
+
+AI produces evidence-backed explanation.
+
+STEP 7
+
+Draw region.
+
+System generates:
+
+Mean temperature
+Mean salinity
+Current speed
+Observation count
+Model error
+Anomaly count
+STEP 8
+
+Draw transect.
+
+Show:
+
+Depth × Distance
+Temperature
+STEP 9
+
+Press play.
+
+Ocean evolves through time.
+
+That is your wow moment.
+
+35. CLEAN UI RULES FOR ANTIGRAVITY
+
+Give Antigravity these strict rules:
+
+Rule 1
+
+The ocean visualization is always the dominant element.
+
+Never let dashboards dominate the screen.
+
+Rule 2
+
+Panels should be:
+
+compact
+floating
+semi-transparent
+blurred
+Rule 3
+
+Use cards sparingly.
+
+Don't turn every data point into a card.
+
+Rule 4
+
+Avoid excessive borders.
+
+Use subtle:
+
+1px rgba(255,255,255,0.06)
+Rule 5
+
+Animations should be slow and purposeful.
+
+Use:
+
+fade
+slide
+scale
+camera transition
+
+Avoid flashy animations.
+
+Rule 6
+
+Data visualization should provide color.
+
+UI should remain mostly monochrome.
+
+Rule 7
+
+Every interaction should preserve the 3D environment.
+
+Don't constantly navigate to new pages.
+
+36. RESPONSIVE DESIGN
+
+Desktop is the primary target.
+
+Minimum:
+
+1440 × 900
+
+Support:
+
+1920 × 1080
+2560 × 1440
+
+Tablet:
+
+Simplified 2D/3D interface.
+
+Mobile:
+
+Not an MVP priority.
+
+37. PERFORMANCE REQUIREMENTS
+
+Target:
+
+60 FPS
+
+under normal visualization conditions.
+
+Requirements:
+
+Lazy loading
+Spatial indexing
+LOD
+Chunked NetCDF
+Server-side subsetting
+Binary transfer where appropriate
+GPU rendering
+Debounced controls
+Web workers
+
+Never transfer huge datasets directly to the browser.
+
+OSIRIS similarly emphasizes viewport-aware WebGL rendering and API normalization to keep heavy feeds manageable in the client.
+
+38. ERROR STATES
+
+Never show:
+
+500 Internal Server Error
+
+to users.
+
+Instead:
+
+Temperature data unavailable
+
+The latest model field could not be loaded.
+
+Last successful update:
+10:42 UTC
+
+[Retry]
+39. DATA TRANSPARENCY
+
+Every visualization should allow:
+
+Source
+Dataset
+Timestamp
+Resolution
+Units
+
+Example:
+
+TEMPERATURE
+
+Source:
+Copernicus GLORYS
+
+Resolution:
+~8 km
+
+Depth:
+100m
+
+Timestamp:
+10 Aug 2026 12:00 UTC
+
+This is extremely important for a scientific product.
+
+40. SCIENTIFIC TRUST
+
+Add a small:
+
+DATA PROVENANCE
+
+panel:
+
+Observation
+        ↓
+Argo
+        ↓
+QC
+        ↓
+OCEAN-X
+        ↓
+Comparison
+
+AI outputs must reference actual observations/model results.
+
+41. FEATURE PRIORITY MATRIX
+Feature	Priority
+3D Ocean	P0
+Temperature	P0
+Salinity	P0
+Currents	P0
+Depth slicing	P0
+Time animation	P0
+Argo	P0
+Profile	P0
+NetCDF	P0
+Model vs Observation	P0+
+Region Dossier	P0+
+Anomaly detection	P0+
+Clean UI	P0+
+Transect	P1
+Glider	P1
+CTD	P1
+Satellite	P1
+Region analytics	P1
+Time comparison	P1
+AI Analyst	P1
+Alerts	P2
+Cyclone integration	P2
+Tsunami integration	P2
+Entity graph	P2
+42. WHAT NOT TO BUILD
+
+Tell Antigravity explicitly:
+
+DO NOT BUILD:
+- generic admin dashboard
+- login system initially
+- social features
+- user profiles
+- mobile app
+- generic chatbot
+- 20 AI models
+- unnecessary microservices
+- huge global dataset in browser
+- excessive animations
+- 10 different map styles
+- cryptocurrency/news/OSINT features from OSIRIS
+
+The goal is scientific depth, not feature quantity.
+
+43. THE OCEAN-X INFORMATION ARCHITECTURE
+                         OCEAN-X
+                            │
+               ┌────────────┼────────────┐
+               │            │            │
+             EXPLORE      ANALYZE      INSIGHT
+               │            │            │
+               ↓            ↓            ↓
+             3D Ocean     Compare      AI Analyst
+               │            │            │
+       ┌───────┼───────┐    │       Anomalies
+       ↓       ↓       ↓    │            │
+     Model   Argo   Satellite │          Alerts
+                       │      │
+                       └──┬───┘
+                          ↓
+                    Ocean Intelligence
+44. THE MOST IMPORTANT PRODUCT LOOP
+
+Build the entire application around this:
+
+EXPLORE
+   ↓
+SELECT
+   ↓
+INVESTIGATE
+   ↓
+COMPARE
+   ↓
+DETECT
+   ↓
+EXPLAIN
+   ↓
+SHARE
+
+Example:
+
+Explore Bay of Bengal
+        ↓
+Select 100m temperature
+        ↓
+Find Argo
+        ↓
+Compare with model
+        ↓
+Detect +1.8°C anomaly
+        ↓
+AI explains anomaly
+        ↓
+Share investigation
+
+That becomes the identity of OCEAN-X.
+
+45. ANTIGRAVITY MASTER PROMPT
+
+If you're going to feed this into Antigravity, I would give it the following high-level instruction:
+
+Build a production-quality web application named OCEAN-X — Interactive 3D Ocean Intelligence & Visualization Platform.
+
+The application is being developed for Smart India Hackathon problem statement SIH26067.
+
+The product must NOT look like a generic SaaS dashboard. It must feel like a premium scientific visualization environment similar in interaction philosophy to modern geospatial intelligence platforms, but specifically designed for ocean science.
+
+CORE EXPERIENCE:
+
+The 3D ocean visualization is the primary interface and must occupy most of the viewport.
+
+Users must be able to:
+
+Explore a 3D ocean environment.
+Visualize temperature, salinity and current fields.
+Change depth interactively.
+Animate ocean conditions through time.
+Overlay Argo, Glider, CTD and other observations.
+Click an observation platform and view its profile.
+Compare model values against observed values.
+Detect spatial and temporal anomalies.
+Right-click an ocean location to open an Ocean Region Dossier.
+Draw a region and calculate scientific statistics.
+Draw an ocean transect and generate depth-distance cross sections.
+Compare two timestamps.
+Ask an ocean-specific AI analyst for evidence-backed explanations.
+Share an investigation state.
+
+VISUAL DESIGN:
+
+Use a dark, premium ocean-inspired interface.
+
+Primary background:
+#061018
+
+Panels:
+#0B1822
+
+Elevated panels:
+#10232F
+
+Primary text:
+#E8F1F5
+
+Secondary text:
+#8DA5B2
+
+Use cyan/aqua only as a restrained accent.
+
+Do not make the interface overly colorful. Scientific data visualizations should provide the majority of the color.
+
+Use subtle glass/blur effects, thin low-opacity borders, rounded corners and restrained shadows.
+
+The UI should feel calm, scientific and high-end.
+
+MAIN LAYOUT:
+
+Full-screen 3D ocean.
+
+Top bar:
+
+OCEAN-X logo
+LIVE indicator
+global search
+time
+layers
+analysis
+AI
+share
+help
+
+Left floating layer panel:
+
+Model
+Observations
+Satellite
+Environment
+
+Bottom floating timeline:
+
+previous
+play/pause
+next
+date
+time
+playback speed
+
+Floating depth control on the left.
+
+Right-side contextual investigation panel.
+
+Do not create unnecessary page navigation.
+
+LAYER PANEL:
+
+MODEL:
+
+Temperature
+Salinity
+Current
+Chlorophyll
+
+OBSERVATIONS:
+
+Argo
+Glider
+CTD
+BGC
+Buoys
+
+SATELLITE:
+
+SST
+Ocean Color
+Sea Level Anomaly
+
+ENVIRONMENT:
+
+Wind
+Rainfall
+Waves
+Cyclones
+Earthquakes
+
+3D VISUALIZATION:
+
+Implement:
+
+volumetric field rendering
+depth slices
+isosurfaces
+current vectors/particles
+vertical exaggeration
+variable color scale
+opacity
+min/max
+linear/log scale
+
+OBSERVATION INTERACTION:
+
+Argo/Glider/CTD objects must be clickable.
+
+On click show:
+
+platform ID
+platform type
+latitude
+longitude
+timestamp
+depth
+variables
+source
+
+Provide OPEN PROFILE.
+
+PROFILE VIEW:
+
+Display depth-vs-variable charts.
+
+Support:
+
+temperature
+salinity
+oxygen
+chlorophyll
+
+Allow toggling:
+
+Observed
+Model
+Difference
+
+MODEL VS OBSERVATION:
+
+This is a core product differentiator.
+
+When an observation is selected, calculate and display the nearest/interpolated model value for the same location/depth/time.
+
+Display:
+
+Observed value
+Model value
+Absolute difference
+Percentage difference
+Confidence/quality indicator
+
+Example:
+
+Observed: 28.4°C
+Model: 27.1°C
+Difference: +1.3°C
+
+ANOMALY ENGINE:
+
+Create an anomaly layer based initially on:
+
+model-observation residuals
+historical deviation
+
+Display anomaly severity using restrained visual encoding.
+
+Every anomaly should contain:
+
+location
+depth
+time
+variable
+magnitude
+evidence
+confidence
+
+OCEAN REGION DOSSIER:
+
+Right-click any ocean location.
+
+Open a contextual panel containing:
+
+temperature
+salinity
+current speed/direction
+depth
+nearby observations
+model error
+anomaly status
+data timestamp
+source
+
+Buttons:
+COMPARE
+PROFILE
+TRANSECT
+EXPLORE REGION
+
+REGION ANALYSIS:
+
+Allow users to draw a polygon/rectangle.
+
+Calculate:
+
+area
+mean temperature
+min/max temperature
+mean salinity
+mean current
+observation count
+model-observation error
+anomaly count
+
+TRANSECT:
+
+Allow drawing a line.
+
+Generate:
+
+distance vs depth
+temperature section
+salinity section
+oxygen section
+chlorophyll section
+
+TIME MACHINE:
+
+Allow users to:
+
+animate through time
+pause
+step forward/backward
+change playback speed
+compare two timestamps
+
+AI ANALYST:
+
+Do not create a generic chatbot.
+
+The AI must be grounded in actual OCEAN-X data.
+
+Workflow:
+
+User question
+→ retrieve relevant datasets
+→ perform scientific calculations
+→ construct structured evidence
+→ LLM generates explanation
+
+Example questions:
+
+"Why is this region anomalous?"
+"Compare the model with Argo observations."
+"What changed during the last 7 days?"
+"Find unusual temperature regions."
+"Explain this current pattern."
+
+AI responses must show evidence and data sources.
+
+DATA PROVENANCE:
+
+Every visualization should expose:
+
+dataset
+source
+timestamp
+resolution
+units
+
+BACKEND:
+
+Use:
+
+Frontend:
+React
+TypeScript
+Next.js
+Three.js
+React Three Fiber
+MapLibre
+Tailwind
+shadcn/ui
+Framer Motion
+
+Backend:
+Python
+FastAPI
+xarray
+NumPy
+SciPy
+Pandas
+
+Database:
+PostgreSQL/PostGIS
+
+Cache:
+Redis
+
+Scientific formats:
+NetCDF
+CF conventions
+OPeNDAP
+CSV
+JSON
+
+ARCHITECTURE:
+
+Data sources
+→ ingestion
+→ normalization
+→ scientific processing
+→ spatial/time indexing
+→ cache
+→ API
+→ frontend
+
+Never send full global NetCDF datasets to the browser.
+
+Use:
+
+spatial subsetting
+temporal subsetting
+chunking
+downsampling
+level of detail
+caching
+binary transfer where useful
+
+API endpoints should include:
+
+/api/model/fields
+/api/model/temperature
+/api/model/salinity
+/api/model/currents
+/api/observations/argo
+/api/observations/glider
+/api/observations/ctd
+/api/profile/{id}
+/api/compare
+/api/anomalies
+/api/region
+/api/transect
+/api/timeseries
+/api/analysis
+/api/ai/analyze
+
+PERFORMANCE:
+
+Target approximately 60 FPS under normal visualization conditions.
+
+Use:
+
+lazy loading
+GPU rendering
+LOD
+Web Workers
+debounced controls
+spatial indexing
+server-side data reduction
+
+KEYBOARD SHORTCUTS:
+
+F = fullscreen
+L = layers
+A = analysis
+T = time
+D = depth
+I = insights
+Cmd/Ctrl + K = search
+Space = play/pause
+Esc = close
+? = shortcuts
+
+MVP:
+
+Implement first:
+
+3D ocean
+temperature
+salinity
+current vectors
+depth slider
+time slider
+Argo observations
+Argo profile
+NetCDF ingestion
+model visualization
+model-vs-observation comparison
+Ocean Region Dossier
+anomaly detection
+polished UI
+
+SECONDARY:
+
+Glider
+CTD
+BGC
+Satellite
+Transect
+Region analytics
+Time comparison
+
+THIRD:
+
+AI Analyst
+Alerts
+Historical anomaly detection
+Cyclone context
+Tsunami context
+
+IMPORTANT PRODUCT PRINCIPLE:
+
+Do not build OCEAN-X as merely a beautiful 3D globe.
+
+The central scientific loop must be:
+
+MODEL
+↓
+OBSERVATION
+↓
+COMPARISON
+↓
+ANOMALY
+↓
+EXPLANATION
+
+Every major UI decision should reinforce this loop.
+
+The final application should feel like a professional digital ocean laboratory rather than a dashboard.
+
+Build reusable components, clean TypeScript types, modular APIs and production-quality error/loading states.
+
+Prioritize working scientific interactions over decorative UI.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-08T00:46:24+05:30.
+</ADDITIONAL_METADATA>
