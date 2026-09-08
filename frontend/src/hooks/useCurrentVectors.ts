@@ -22,7 +22,7 @@ export function useCurrentVectors(
   const [speedMin, setSpeedMin] = useState(0);
   const [speedMax, setSpeedMax] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const requestIdRef = useRef(0);
 
   const fetchVectors = useCallback(async () => {

@@ -297,3 +297,97 @@
   border: 1px solid rgba(76, 175, 80, 0.8);
   box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
 }
+
+.sr-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sr-toggle-btn {
+  background: rgba(255, 193, 7, 0.12);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  color: #ffc107;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: monospace;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sr-toggle-btn:hover {
+  background: rgba(255, 193, 7, 0.25);
+  color: #ffffff;
+  border-color: #ffc107;
+}
+
+/* Slim Ticker Row when Collapsed */
+.sr-ticker-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 6px 18px;
+  background: rgba(6, 14, 26, 0.95);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 11px;
+}
+
+.sr-ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sr-ticker-tag {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.sr-ticker-tag.critical {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.sr-ticker-tag.warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.sr-ticker-tag.live {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.sr-ticker-text {
+  color: #e2e8f0;
+}
+
+.sr-ticker-btn {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sr-ticker-btn:hover {
+  background: rgba(56, 189, 248, 0.3);
+  color: #ffffff;
+}
+
+.sr-ticker-sep {
+  color: rgba(255, 255, 255, 0.15);
+}

@@ -1,8 +1,7 @@
 """API endpoints for ocean model data."""
 from fastapi import APIRouter, Request, Response, HTTPException, Query
-from typing import Optional
 import numpy as np
-import orjson
+from app.models.schemas import Variable
 
 router = APIRouter(prefix="/api/model", tags=["Model Data"])
 
@@ -19,7 +18,7 @@ def get_model_info(request: Request):
 @router.get("/slice")
 def get_model_slice(
     request: Request,
-    variable: str = Query(default="thetao", description="Variable name"),
+    variable: Variable = Query(default=Variable.TEMPERATURE, description="Variable name"),
     depth: float = Query(default=0.0, ge=0, description="Depth in meters"),
     time_index: int = Query(default=0, ge=0, description="Time step index"),
 ):
@@ -34,13 +33,13 @@ def get_model_slice(
     
     try:
         arr, metadata = nc_service.get_depth_slice(
-            variable=variable,
+            variable=variable.value,
             depth=depth,
             time_index=time_index
         )
         
         # Replace NaN with a sentinel for the frontend
-        arr = np.nan_to_num(arr, nan=-9999.0)
+        arr = np.ascontiguousarray(np.nan_to_num(arr, nan=-9999.0), dtype=np.float32)
         
         return Response(
             content=arr.tobytes(),
@@ -66,7 +65,7 @@ def get_model_slice(
 @router.get("/slice/json")
 def get_model_slice_json(
     request: Request,
-    variable: str = Query(default="thetao"),
+    variable: Variable = Query(default=Variable.TEMPERATURE),
     depth: float = Query(default=0.0, ge=0),
     time_index: int = Query(default=0, ge=0),
 ):
@@ -77,7 +76,7 @@ def get_model_slice_json(
     
     try:
         arr, metadata = nc_service.get_depth_slice(
-            variable=variable,
+            variable=variable.value,
             depth=depth,
             time_index=time_index
         )
@@ -98,9 +97,9 @@ def get_model_slice_json(
 @router.get("/profile")
 def get_model_profile(
     request: Request,
-    variable: str = Query(default="thetao"),
-    lat: float = Query(description="Latitude"),
-    lon: float = Query(description="Longitude"),
+    variable: Variable = Query(default=Variable.TEMPERATURE),
+    lat: float = Query(ge=0.0, le=28.0, description="Latitude"),
+    lon: float = Query(ge=60.0, le=100.0, description="Longitude"),
     time_index: int = Query(default=0, ge=0),
 ):
     """Get a vertical depth profile at a specific lat/lon."""
@@ -110,13 +109,13 @@ def get_model_profile(
     
     try:
         depths, values = nc_service.get_depth_profile(
-            variable=variable,
+            variable=variable.value,
             lat=lat,
             lon=lon,
             time_index=time_index
         )
         return {
-            "variable": variable,
+            "variable": variable.value,
             "latitude": lat,
             "longitude": lon,
             "time_index": time_index,

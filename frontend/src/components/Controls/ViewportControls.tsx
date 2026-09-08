@@ -25,7 +25,7 @@ export const ViewportControls: React.FC<ViewportControlsProps> = ({
       <button
         className="compass-btn"
         onClick={onResetNadir}
-        title="Reset to Nadir Top-Down View (90°)"
+        title="Reset to the Indian Ocean overview"
       >
         <div className="compass-needle" style={{ transform: `rotate(${-(cameraPitch - 50)}deg)` }}>
           <span className="needle-n">N</span>
@@ -38,7 +38,7 @@ export const ViewportControls: React.FC<ViewportControlsProps> = ({
         <input
           type="range"
           min="15"
-          max="75"
+          max="90"
           value={cameraPitch}
           onChange={(e) => onPitchChange(parseInt(e.target.value))}
           className="vertical-tilt-slider"

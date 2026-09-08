@@ -1,8 +1,8 @@
 /* HoverSounderHUD.css */
 .hover-sounder-hud {
   position: absolute;
-  bottom: 84px;
-  right: 20px;
+  bottom: 18px;
+  right: 238px;
   width: 280px;
   background: rgba(11, 24, 34, 0.94);
   backdrop-filter: blur(12px);

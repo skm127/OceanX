@@ -11,7 +11,7 @@
  * - Global Search (⌘K / Ctrl+K — PRD §24)
  * - Grounded Ocean Analyst AI (PRD §21-23)
  */
-import { useState, useEffect, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import Globe from './components/Globe/Globe';
 import ControlBar from './components/Controls/ControlBar';
@@ -19,26 +19,13 @@ import Colorbar from './components/Controls/Colorbar';
 import TimeAnimator from './components/Controls/TimeAnimator';
 import InfoPanel from './components/Controls/InfoPanel';
 import SectorNavigator from './components/Controls/SectorNavigator';
-import ComparisonPanel from './components/Panels/ComparisonPanel';
 import FleetSidebar from './components/Panels/FleetSidebar';
-import MissionBriefingModal from './components/Panels/MissionBriefingModal';
-import VerticalProfileHUD from './components/Controls/VerticalProfileHUD';
-import OceanDossierModal from './components/Panels/OceanDossierModal';
-import RegionAnalysisModal from './components/Panels/RegionAnalysisModal';
-import TransectModal from './components/Panels/TransectModal';
 import LayerRail from './components/Controls/LayerRail';
-import GlobalSearchModal from './components/Panels/GlobalSearchModal';
-import AiAnalystModal from './components/Panels/AiAnalystModal';
 import ExplainabilityToggle, { type ExplainMode } from './components/Controls/ExplainabilityToggle';
 import HoverSounderHUD from './components/Controls/HoverSounderHUD';
 import DataSourceBadge from './components/Controls/DataSourceBadge';
-import DataProvenanceModal from './components/Panels/DataProvenanceModal';
 import ViewportControls from './components/Controls/ViewportControls';
 import ProductModeSelector, { type ProductMode } from './components/Controls/ProductModeSelector';
-import OperationalSituationRoom from './components/Panels/OperationalSituationRoom';
-import LearnStoryJourney from './components/Panels/LearnStoryJourney';
-import DataManagerModal from './components/Panels/DataManagerModal';
-import CoLocationModal from './components/Panels/CoLocationModal';
 import { useOceanData } from './hooks/useOceanData';
 import { useCurrentVectors } from './hooks/useCurrentVectors';
 import { useArgoData } from './hooks/useArgoData';
@@ -49,6 +36,20 @@ import {
   type SectorId,
 } from './utils/coordinates';
 import './App.css';
+
+const ComparisonPanel = lazy(() => import('./components/Panels/ComparisonPanel'));
+const MissionBriefingModal = lazy(() => import('./components/Panels/MissionBriefingModal'));
+const VerticalProfileHUD = lazy(() => import('./components/Controls/VerticalProfileHUD'));
+const OceanDossierModal = lazy(() => import('./components/Panels/OceanDossierModal'));
+const RegionAnalysisModal = lazy(() => import('./components/Panels/RegionAnalysisModal'));
+const TransectModal = lazy(() => import('./components/Panels/TransectModal'));
+const GlobalSearchModal = lazy(() => import('./components/Panels/GlobalSearchModal'));
+const AiAnalystModal = lazy(() => import('./components/Panels/AiAnalystModal'));
+const DataProvenanceModal = lazy(() => import('./components/Panels/DataProvenanceModal'));
+const OperationalSituationRoom = lazy(() => import('./components/Panels/OperationalSituationRoom'));
+const LearnStoryJourney = lazy(() => import('./components/Panels/LearnStoryJourney'));
+const DataManagerModal = lazy(() => import('./components/Panels/DataManagerModal'));
+const CoLocationModal = lazy(() => import('./components/Panels/CoLocationModal'));
 
 function App() {
   const {
@@ -130,6 +131,8 @@ function App() {
   const [showArgo, setShowArgo] = useState(true);
   const [showSST, setShowSST] = useState(false);
   const [showCyclones, setShowCyclones] = useState(true);
+  const [showVolumetricBlock, setShowVolumetricBlock] = useState(true);
+  const [verticalExaggeration, setVerticalExaggeration] = useState(1.0);
 
   // Live UTC Clock
   const [utcTime, setUtcTime] = useState('');
@@ -209,6 +212,7 @@ function App() {
   // Multi-sensor platform selection with smooth camera fly-to (Argo, Buoys, Gliders)
   const handleSelectArgo = (id: string) => {
     setSelectedProfileId(id);
+    setProfileHudData((prev) => ({ ...prev, isOpen: false }));
     const p = argoProfiles.find((item) => item.id === id);
     if (p) {
       setProbedCoord({ lat: p.latitude, lon: p.longitude });
@@ -336,7 +340,11 @@ function App() {
       } else if (e.key === 'a' || e.key === 'A' || e.key === 'i' || e.key === 'I') {
         setAiModalOpen((prev) => !prev);
       } else if (e.key === 'p' || e.key === 'P') {
-        setProfileHudData((prev) => ({ ...prev, isOpen: !prev.isOpen }));
+        setProfileHudData((prev) => {
+          const next = !prev.isOpen;
+          if (next) setSelectedProfileId(null);
+          return { ...prev, isOpen: next };
+        });
       } else if (e.key === 'f' || e.key === 'F') {
         setFleetOpen((prev) => !prev);
       } else if (e.key === '?') {
@@ -394,7 +402,7 @@ function App() {
             onClick={() => handleSelectSector('anomaly_target')}
             title="Inspect Subsurface Thermal Anomaly #2902345 (Key: 4)"
           >
-            1 SIGNIFICANT ANOMALY
+            ⚠ 1 ANOMALY
           </button>
 
           {/* Data Provenance & Methodology */}
@@ -449,13 +457,13 @@ function App() {
             )}
           </div>
 
-          {/* In-Situ Argo Profiler Network Count */}
+          {/* In-Situ Multi-Sensor Platform Network Count */}
           <button
             className="c2-badge floats fleet-btn"
             onClick={() => setFleetOpen(!fleetOpen)}
-            title="Inspect Active In-Situ Argo Profilers (Key: F)"
+            title="Inspect Active In-Situ Sensor Network (Key: F)"
           >
-            {argoProfiles.length} ARGO PROFILERS
+            📡 {argoProfiles.length + 6} SENSORS
           </button>
 
           {/* Scientific Briefing */}
@@ -489,17 +497,19 @@ function App() {
 
       {/* SAGAR-VIEW Operational Situation Room Banner (Blueprint §8.7 & §16) */}
       {productMode === 'operational' && (
-        <OperationalSituationRoom
-          onJumpToAnomaly={() => handleSelectSector('anomaly_target')}
-          onJumpToBuoy={(buoyId) => {
-            if (buoyId === 'buoy_BD08') {
-              handleCameraFlyTo(13.0, 84.0, 4.2);
-              setProbedCoord({ lat: 13.0, lon: 84.0 });
-              loadProfileForLocation(13.0, 84.0, 'buoy_BD08');
-            }
-          }}
-          onClose={() => setProductMode('research')}
-        />
+        <Suspense fallback={null}>
+          <OperationalSituationRoom
+            onJumpToAnomaly={() => handleSelectSector('anomaly_target')}
+            onJumpToBuoy={(buoyId) => {
+              if (buoyId === 'buoy_BD08') {
+                handleCameraFlyTo(13.0, 84.0, 4.2);
+                setProbedCoord({ lat: 13.0, lon: 84.0 });
+                loadProfileForLocation(13.0, 84.0, 'buoy_BD08');
+              }
+            }}
+            onClose={() => setProductMode('research')}
+          />
+        </Suspense>
       )}
 
       {/* 3D Ocean Viewport */}
@@ -508,7 +518,11 @@ function App() {
         <ViewportControls
           cameraPitch={cameraPitch}
           onPitchChange={setCameraPitch}
-          onResetNadir={() => setCameraPitch(90)}
+          onResetNadir={() => {
+            setCameraPitch(75);
+            setCurrentSector('all_india');
+            setTargetCameraPos(getSectorCameraPosition('all_india'));
+          }}
         />
         {/* Persistent Left Layer Rail (PRD §6) */}
         <LayerRail
@@ -519,11 +533,15 @@ function App() {
           showArgo={showArgo}
           showSST={showSST}
           showCyclones={showCyclones}
+          showVolumetricBlock={showVolumetricBlock}
+          verticalExaggeration={verticalExaggeration}
           onVariableChange={setVariable}
-          onToggleCurrents={() => setShowCurrents(!showCurrents)}
-          onToggleArgo={() => setShowArgo(!showArgo)}
-          onToggleSST={() => setShowSST(!showSST)}
-          onToggleCyclones={() => setShowCyclones(!showCyclones)}
+          onToggleCurrents={() => setShowCurrents((visible) => !visible)}
+          onToggleArgo={() => setShowArgo((visible) => !visible)}
+          onToggleSST={() => setShowSST((visible) => !visible)}
+          onToggleCyclones={() => setShowCyclones((visible) => !visible)}
+          onToggleVolumetricBlock={() => setShowVolumetricBlock((visible) => !visible)}
+          onVerticalExaggerationChange={setVerticalExaggeration}
           onOpacityChange={setOceanOpacity}
           onOpenTransect={() => setTransectModalOpen(true)}
           onOpenRegionAnalysis={() => setRegionModalOpen(true)}
@@ -532,7 +550,7 @@ function App() {
         />
 
         {/* Real-time View Diagnostics & Parameter Card */}
-        {sliceData && (
+        {sliceData && !fleetOpen && !layerRailOpen && (
           <InfoPanel
             variable={variable}
             depth={depth}
@@ -546,6 +564,7 @@ function App() {
             fleetCount={argoProfiles.length}
             onOpacityChange={setOceanOpacity}
             onOpenFleet={() => setFleetOpen(!fleetOpen)}
+            railOpen={layerRailOpen}
           />
         )}
 
@@ -556,6 +575,7 @@ function App() {
           isOpen={fleetOpen}
           onToggle={() => setFleetOpen(!fleetOpen)}
           onSelect={handleSelectArgo}
+          railOpen={layerRailOpen}
         />
 
         {/* 3D Globe with continents, ocean raster, currents, and Argo markers */}
@@ -573,100 +593,127 @@ function App() {
           onHoverCoordinate={setHoverCoord}
           oceanOpacity={oceanOpacity}
           depthLevels={depthLevels}
+          showVolumetricBlock={showVolumetricBlock}
+          verticalExaggeration={verticalExaggeration}
           onSelectArgo={handleSelectArgo}
           onProbeCoordinate={handleProbeCoordinate}
           onContextMenuCoordinate={handleContextMenuCoordinate}
+          onCameraFlightComplete={() => setTargetCameraPos(null)}
         />
 
         {/* Floating Vertical Profile Sounding HUD (Image 1) */}
         {profileHudData.isOpen && (
-          <VerticalProfileHUD
-            title={selectedProfileId ? 'Observation vs Model Sounding' : 'Vertical profile'}
-            latitude={profileHudData.lat}
-            longitude={profileHudData.lon}
-            depths={profileHudData.depths}
-            modelValues={profileHudData.modelValues}
-            observedValues={profileHudData.observedValues}
-            variable={variable}
-            unit={unit}
-            currentDepth={depth}
-            onDepthSelect={(d) => setDepth(d)}
-            onClose={() => setProfileHudData((prev) => ({ ...prev, isOpen: false }))}
-          />
+          <Suspense fallback={null}>
+            <VerticalProfileHUD
+              title={selectedProfileId ? 'Observation vs Model Sounding' : 'Vertical profile'}
+              latitude={profileHudData.lat}
+              longitude={profileHudData.lon}
+              depths={profileHudData.depths}
+              modelValues={profileHudData.modelValues}
+              observedValues={profileHudData.observedValues}
+              variable={variable}
+              unit={unit}
+              currentDepth={depth}
+              onDepthSelect={(d) => setDepth(d)}
+              onClose={() => setProfileHudData((prev) => ({ ...prev, isOpen: false }))}
+            />
+          </Suspense>
         )}
 
         {/* Right-Click Ocean Region Dossier Modal (PRD §15) */}
         {dossierCoord && (
-          <OceanDossierModal
-            coordinate={dossierCoord}
-            depth={depth}
-            timeIndex={timeIndex}
-            date={currentDate}
-            onClose={() => setDossierCoord(null)}
-            onOpenProfile={(lat, lon, depths, vals) => {
-              setProfileHudData({
-                isOpen: true,
-                lat,
-                lon,
-                depths,
-                modelValues: vals,
-                observedValues: null,
-              });
-            }}
-            onSelectArgo={handleSelectArgo}
-            onStartTransectFromHere={handleStartTransectFromHere}
-            onAnalyzeRegionHere={handleAnalyzeRegionHere}
-          />
+          <Suspense fallback={null}>
+            <OceanDossierModal
+              coordinate={dossierCoord}
+              depth={depth}
+              timeIndex={timeIndex}
+              date={currentDate}
+              onClose={() => setDossierCoord(null)}
+              onOpenProfile={(lat, lon, depths, vals) => {
+                setProfileHudData({
+                  isOpen: true,
+                  lat,
+                  lon,
+                  depths,
+                  modelValues: vals,
+                  observedValues: null,
+                });
+              }}
+              onSelectArgo={handleSelectArgo}
+              onStartTransectFromHere={handleStartTransectFromHere}
+              onAnalyzeRegionHere={handleAnalyzeRegionHere}
+            />
+          </Suspense>
         )}
 
         {/* Region Analysis Bounding Box Modal (PRD §16 & Image 2) */}
         {regionModalOpen && (
-          <RegionAnalysisModal
-            initialBounds={regionBounds}
-            depth={depth}
-            timeIndex={timeIndex}
-            onClose={() => setRegionModalOpen(false)}
-            onFocusRegion={(latMin, latMax, lonMin, lonMax) => {
-              const cLat = (latMin + latMax) / 2;
-              const cLon = (lonMin + lonMax) / 2;
-              setTargetCameraPos(latLonToVector3(cLat, cLon, 5.5));
-            }}
-          />
+          <Suspense fallback={null}>
+            <RegionAnalysisModal
+              initialBounds={regionBounds}
+              depth={depth}
+              timeIndex={timeIndex}
+              variable={variable}
+              sliceData={sliceData}
+              date={currentDate}
+              onClose={() => setRegionModalOpen(false)}
+              onFocusRegion={(latMin, latMax, lonMin, lonMax) => {
+                const cLat = (latMin + latMax) / 2;
+                const cLon = (lonMin + lonMax) / 2;
+                setTargetCameraPos(latLonToVector3(cLat, cLon, 5.5));
+              }}
+              onInspectCoordinate={(lat, lon) => {
+                setProbedCoord({ lat, lon });
+                setTargetCameraPos(latLonToVector3(lat, lon, 4.8));
+                loadProfileForLocation(lat, lon);
+              }}
+            />
+          </Suspense>
         )}
 
         {/* Ocean Transect Vertical Cross-Section Modal (PRD §17) */}
         {transectModalOpen && (
-          <TransectModal
-            initialLine={transectLine}
-            timeIndex={timeIndex}
-            onClose={() => setTransectModalOpen(false)}
-          />
+          <Suspense fallback={null}>
+            <TransectModal
+              initialLine={transectLine}
+              timeIndex={timeIndex}
+              onClose={() => setTransectModalOpen(false)}
+            />
+          </Suspense>
         )}
 
         {/* Global Search Modal (⌘K / Ctrl+K — PRD §24) */}
-        <GlobalSearchModal
-          isOpen={searchModalOpen}
-          argoProfiles={argoProfiles}
-          onClose={() => setSearchModalOpen(false)}
-          onSelectCoordinate={(lat, lon) => {
-            setProbedCoord({ lat, lon });
-            setTargetCameraPos(latLonToVector3(lat, lon, 4.8));
-            loadProfileForLocation(lat, lon);
-          }}
-          onSelectArgo={handleSelectArgo}
-          onSelectSector={handleSelectSector}
-        />
+        {searchModalOpen && (
+          <Suspense fallback={null}>
+            <GlobalSearchModal
+              isOpen={searchModalOpen}
+              argoProfiles={argoProfiles}
+              onClose={() => setSearchModalOpen(false)}
+              onSelectCoordinate={(lat, lon) => {
+                setProbedCoord({ lat, lon });
+                setTargetCameraPos(latLonToVector3(lat, lon, 4.8));
+                loadProfileForLocation(lat, lon);
+              }}
+              onSelectArgo={handleSelectArgo}
+              onSelectSector={handleSelectSector}
+            />
+          </Suspense>
+        )}
 
         {/* Grounded Ocean Analyst AI Modal (PRD §21-23) */}
-        <AiAnalystModal
-          isOpen={aiModalOpen}
-          latitude={probedCoord?.lat ?? 14.5}
-          longitude={probedCoord?.lon ?? 84.8}
-          depth={depth}
-          timeIndex={timeIndex}
-          onClose={() => setAiModalOpen(false)}
-          onTargetAnomaly={() => handleSelectSector('anomaly_target')}
-        />
+        {aiModalOpen && (
+          <Suspense fallback={null}>
+            <AiAnalystModal
+              isOpen={aiModalOpen}
+              latitude={probedCoord?.lat ?? 14.5}
+              longitude={probedCoord?.lon ?? 84.8}
+              depth={depth}
+              timeIndex={timeIndex}
+              onClose={() => setAiModalOpen(false)}
+              onTargetAnomaly={() => handleSelectSector('anomaly_target')}
+            />
+          </Suspense>
+        )}
 
         {/* Command & Control Hotkeys Guide Modal */}
         {showHotkeys && (
@@ -728,56 +775,74 @@ function App() {
         )}
 
         {/* SIH 2026 PS26067 Mission Briefing Modal */}
-        <MissionBriefingModal
-          isOpen={briefingOpen}
-          onClose={() => setBriefingOpen(false)}
-          onJumpToAnomaly={() => handleSelectSector('anomaly_target')}
-        />
+        {briefingOpen && (
+          <Suspense fallback={null}>
+            <MissionBriefingModal
+              isOpen={briefingOpen}
+              onClose={() => setBriefingOpen(false)}
+              onJumpToAnomaly={() => handleSelectSector('anomaly_target')}
+            />
+          </Suspense>
+        )}
 
         {/* Data Provenance & Scientific Methodology Modal */}
-        <DataProvenanceModal
-          isOpen={provenanceOpen}
-          onClose={() => setProvenanceOpen(false)}
-        />
+        {provenanceOpen && (
+          <Suspense fallback={null}>
+            <DataProvenanceModal
+              isOpen={provenanceOpen}
+              onClose={() => setProvenanceOpen(false)}
+            />
+          </Suspense>
+        )}
 
         {/* SAGAR-VIEW Learn Mode Guided Journey (Blueprint §16) */}
         {productMode === 'learn' && (
-          <LearnStoryJourney
-            onCameraFlyTo={handleCameraFlyTo}
-            onClose={() => setProductMode('research')}
-          />
+          <Suspense fallback={null}>
+            <LearnStoryJourney
+              onCameraFlyTo={handleCameraFlyTo}
+              onClose={() => setProductMode('research')}
+            />
+          </Suspense>
         )}
 
         {/* SAGAR-VIEW Data Manager & CF-1.8 NetCDF Inspector (Blueprint §16) */}
         {productMode === 'datamanager' && (
-          <DataManagerModal
-            onClose={() => setProductMode('research')}
-          />
+          <Suspense fallback={null}>
+            <DataManagerModal
+              onClose={() => setProductMode('research')}
+            />
+          </Suspense>
         )}
 
         {/* SAGAR-VIEW Spatial-Temporal Co-Location Engine (Blueprint §8.2) */}
-        <CoLocationModal
-          isOpen={coLocationOpen}
-          probedLat={probedCoord?.lat ?? 14.5}
-          probedLon={probedCoord?.lon ?? 84.8}
-          onClose={() => setCoLocationOpen(false)}
-          onJumpToSensor={(lat, lon) => {
-            handleCameraFlyTo(lat, lon, 4.4);
-            setProbedCoord({ lat, lon });
-            loadProfileForLocation(lat, lon);
-            setCoLocationOpen(false);
-          }}
-        />
+        {coLocationOpen && (
+          <Suspense fallback={null}>
+            <CoLocationModal
+              isOpen={coLocationOpen}
+              probedLat={probedCoord?.lat ?? 14.5}
+              probedLon={probedCoord?.lon ?? 84.8}
+              onClose={() => setCoLocationOpen(false)}
+              onJumpToSensor={(lat, lon) => {
+                handleCameraFlyTo(lat, lon, 4.4);
+                setProbedCoord({ lat, lon });
+                loadProfileForLocation(lat, lon);
+                setCoLocationOpen(false);
+              }}
+            />
+          </Suspense>
+        )}
 
         {/* Core Differentiator: Model vs Reality Comparison Drawer */}
         {selectedProfileId && (
-          <ComparisonPanel
-            profileId={selectedProfileId}
-            variable={variable}
-            timeIndex={timeIndex}
-            explainMode={explainMode}
-            onClose={() => setSelectedProfileId(null)}
-          />
+          <Suspense fallback={null}>
+            <ComparisonPanel
+              profileId={selectedProfileId}
+              variable={variable}
+              timeIndex={timeIndex}
+              explainMode={explainMode}
+              onClose={() => setSelectedProfileId(null)}
+            />
+          </Suspense>
         )}
 
         {/* Colorbar scale legend */}
@@ -825,7 +890,7 @@ function App() {
           showCurrents={showCurrents}
           onVariableChange={setVariable}
           onDepthChange={setDepth}
-          onToggleCurrents={() => setShowCurrents(!showCurrents)}
+          onToggleCurrents={() => setShowCurrents((visible) => !visible)}
         />
       </footer>
     </div>

@@ -92,10 +92,16 @@ class NetCDFService:
             raise RuntimeError("Dataset not loaded")
         
         ds = self.dataset
+        if variable not in ds.data_vars:
+            raise ValueError(f"Unsupported model variable: {variable}")
         lat_name = self._find_coord('lat', 'latitude')
         lon_name = self._find_coord('lon', 'longitude')
         depth_name = self._find_coord('depth', 'lev')
         time_name = self._find_coord('time', 't')
+        if not all((lat_name, lon_name, depth_name, time_name)):
+            raise RuntimeError("Model dataset is missing one or more required coordinates")
+        if time_index >= ds.sizes[time_name]:
+            raise ValueError(f"Time index {time_index} is outside the available model range")
         
         # Select time step
         data = ds[variable].isel({time_name: time_index})
@@ -110,7 +116,11 @@ class NetCDFService:
             data = data.sel({lon_name: slice(lon_range[0], lon_range[1])})
         
         # Compute (load into memory) and convert to float32
-        arr = data.values.astype(np.float32)
+        arr = np.ascontiguousarray(data.values, dtype=np.float32)
+        if arr.ndim != 2 or arr.size == 0:
+            raise ValueError("Requested slice does not contain a two-dimensional grid")
+        if not np.isfinite(arr).any():
+            raise ValueError("Requested slice does not contain valid ocean values")
         
         metadata = {
             "variable": variable,
@@ -144,10 +154,16 @@ class NetCDFService:
             raise RuntimeError("Dataset not loaded")
         
         ds = self.dataset
+        if variable not in ds.data_vars:
+            raise ValueError(f"Unsupported model variable: {variable}")
         lat_name = self._find_coord('lat', 'latitude')
         lon_name = self._find_coord('lon', 'longitude')
         depth_name = self._find_coord('depth', 'lev')
         time_name = self._find_coord('time', 't')
+        if not all((lat_name, lon_name, depth_name, time_name)):
+            raise RuntimeError("Model dataset is missing one or more required coordinates")
+        if time_index >= ds.sizes[time_name]:
+            raise ValueError(f"Time index {time_index} is outside the available model range")
         
         try:
             # Bilinear 2D spatial interpolation over surrounding grid cells

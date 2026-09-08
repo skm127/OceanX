@@ -7,8 +7,8 @@ Provides advanced spatial computations:
 4. /api/analytics/ai/analyze - Grounded AI Analyst providing evidence-backed oceanographic diagnoses
 """
 from fastapi import APIRouter, Request, HTTPException, Query
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field
+from typing import Literal, Optional
 import numpy as np
 import math
 
@@ -16,32 +16,32 @@ router = APIRouter(prefix="/api/analytics", tags=["Analytics & Spatial Intellige
 
 
 class BoundingBoxRequest(BaseModel):
-    lat_min: float
-    lat_max: float
-    lon_min: float
-    lon_max: float
-    depth: float = 0.0
-    time_index: int = 0
-    variable: str = "thetao"
+    lat_min: float = Field(ge=0.0, le=28.0)
+    lat_max: float = Field(ge=0.0, le=28.0)
+    lon_min: float = Field(ge=60.0, le=100.0)
+    lon_max: float = Field(ge=60.0, le=100.0)
+    depth: float = Field(default=0.0, ge=0.0, le=500.0)
+    time_index: int = Field(default=0, ge=0)
+    variable: Literal["thetao", "so", "uo", "vo"] = "thetao"
 
 
 class TransectRequest(BaseModel):
-    lat1: float
-    lon1: float
-    lat2: float
-    lon2: float
-    variable: str = "thetao"
-    time_index: int = 0
-    num_samples: int = 25
+    lat1: float = Field(ge=0.0, le=28.0)
+    lon1: float = Field(ge=60.0, le=100.0)
+    lat2: float = Field(ge=0.0, le=28.0)
+    lon2: float = Field(ge=60.0, le=100.0)
+    variable: Literal["thetao", "so", "uo", "vo"] = "thetao"
+    time_index: int = Field(default=0, ge=0)
+    num_samples: int = Field(default=25, ge=5, le=50)
 
 
 class AiQueryRequest(BaseModel):
-    query: str
-    lat: Optional[float] = None
-    lon: Optional[float] = None
-    depth: Optional[float] = None
+    query: str = Field(min_length=1, max_length=1_000)
+    lat: Optional[float] = Field(default=None, ge=0.0, le=28.0)
+    lon: Optional[float] = Field(default=None, ge=60.0, le=100.0)
+    depth: Optional[float] = Field(default=None, ge=0.0, le=500.0)
     profile_id: Optional[str] = None
-    time_index: int = 0
+    time_index: int = Field(default=0, ge=0)
 
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -195,7 +195,7 @@ def calculate_ocean_transect(payload: TransectRequest, request: Request):
     if not nc_service.is_loaded:
         raise HTTPException(status_code=503, detail="Model data not loaded")
 
-    n_pts = max(5, min(payload.num_samples, 50))
+    n_pts = payload.num_samples
     total_dist_km = haversine_km(payload.lat1, payload.lon1, payload.lat2, payload.lon2)
 
     lats = np.linspace(payload.lat1, payload.lat2, n_pts).tolist()
@@ -469,11 +469,11 @@ def run_ai_grounded_analysis(payload: AiQueryRequest, request: Request):
 @router.get("/colocate")
 def colocate_observations(
     request: Request,
-    lat: float = Query(..., description="Target latitude"),
-    lon: float = Query(..., description="Target longitude"),
-    radius_km: float = Query(default=250.0, description="Search radius in kilometers"),
-    time_window_hours: float = Query(default=48.0, description="Time window in hours"),
-    variable: str = Query(default="thetao", description="Variable to compare: thetao or so")
+    lat: float = Query(..., ge=0.0, le=28.0, description="Target latitude"),
+    lon: float = Query(..., ge=60.0, le=100.0, description="Target longitude"),
+    radius_km: float = Query(default=250.0, ge=1.0, le=1_000.0, description="Search radius in kilometers"),
+    time_window_hours: float = Query(default=48.0, ge=1.0, le=720.0, description="Time window in hours"),
+    variable: Literal["thetao", "so"] = Query(default="thetao", description="Variable to compare")
 ):
     """
     SAGAR-VIEW Spatial-Temporal Co-Location Engine (Blueprint §8.2).

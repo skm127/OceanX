@@ -4,8 +4,9 @@ Main entry point. Loads datasets on startup via lifespan,
 registers routers, and serves the API.
 """
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 import logging
 import os
 
@@ -15,9 +16,9 @@ from app.services.argo_service import ArgoService
 from app.services.anomaly_service import AnomalyService
 from app.routers import model_data, observations, comparison, anomaly, analytics
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+settings = get_settings()
+logging.basicConfig(level=logging.DEBUG if settings.debug else logging.INFO)
+logger = logging.getLogger("oceanx")
 
 
 @asynccontextmanager
@@ -64,20 +65,30 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="OCEAN-X API",
     description="3D Ocean Intelligence & Visualization Platform API",
-    version="0.1.0",
+    version="1.0.0",
+    debug=settings.debug,
     lifespan=lifespan
 )
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Dev: allow all origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_origin_list,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Accept", "Content-Type", "Origin"],
     expose_headers=["X-Width", "X-Height", "X-Min", "X-Max", "X-Variable", 
                     "X-Depth", "X-Lat-Min", "X-Lat-Max", "X-Lon-Min", "X-Lon-Max"]
 )
+app.add_middleware(GZipMiddleware, minimum_size=1_000)
+
+
+@app.middleware("http")
+async def add_response_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), geolocation=(), microphone=()")
+    return response
 
 # Register routers
 app.include_router(model_data.router)
@@ -87,18 +98,28 @@ app.include_router(anomaly.router)
 app.include_router(analytics.router)
 
 
-@app.get("/api/health")
-def health_check():
-    """Health check endpoint with dataset status."""
-    settings = get_settings()
+def health_payload() -> dict:
     nc_service = app.state.nc_service
     argo_service = app.state.argo_service
-    
     return {
-        "status": "healthy",
+        "status": "healthy" if nc_service.is_loaded and argo_service.is_loaded else "degraded",
         "app_name": settings.app_name,
         "model_data_loaded": nc_service.is_loaded,
         "argo_data_loaded": argo_service.is_loaded,
         "model_info": nc_service.get_info() if nc_service.is_loaded else None,
         "argo_info": argo_service.get_info() if argo_service.is_loaded else None
     }
+
+
+@app.get("/api/health/live")
+def liveness_check():
+    return {"status": "healthy", "app_name": settings.app_name}
+
+
+@app.get("/api/health")
+@app.get("/api/health/ready")
+def readiness_check(response: Response):
+    payload = health_payload()
+    if payload["status"] != "healthy":
+        response.status_code = 503
+    return payload

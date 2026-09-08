@@ -10,6 +10,7 @@ interface FleetSidebarProps {
   profiles: ArgoProfileSummary[];
   selectedId: string | null;
   isOpen: boolean;
+  railOpen?: boolean;
   onToggle: () => void;
   onSelect: (id: string) => void;
 }
@@ -30,6 +31,7 @@ export default function FleetSidebar({
   profiles,
   selectedId,
   isOpen,
+  railOpen = false,
   onToggle,
   onSelect,
 }: FleetSidebarProps) {
@@ -65,7 +67,7 @@ export default function FleetSidebar({
   const totalPlatforms = profiles.length + MOORED_BUOYS.length + GLIDER_MISSIONS.length;
 
   return (
-    <div className="fleet-sidebar">
+    <div className={`fleet-sidebar ${railOpen ? 'with-layer-rail' : ''}`}>
       <div className="fleet-header">
         <div className="fleet-header-title">
           <span>📡</span>

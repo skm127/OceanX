@@ -16,6 +16,7 @@ interface InfoPanelProps {
   showCurrents: boolean;
   opacity?: number;
   fleetCount?: number;
+  railOpen?: boolean;
   onOpacityChange?: (opacity: number) => void;
   onOpenFleet?: () => void;
 }
@@ -31,11 +32,12 @@ export default function InfoPanel({
   showCurrents,
   opacity = 0.82,
   fleetCount = 8,
+  railOpen = false,
   onOpacityChange,
   onOpenFleet,
 }: InfoPanelProps) {
   return (
-    <div className="info-panel">
+    <div className={`info-panel ${railOpen ? 'with-layer-rail' : ''}`}>
       <div className="info-row">
         <span className="info-label">Variable</span>
         <span className="info-value">{VARIABLE_LABELS[variable]}</span>

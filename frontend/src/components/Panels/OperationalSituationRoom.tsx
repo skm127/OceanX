@@ -20,55 +20,87 @@ export const OperationalSituationRoom: React.FC<OperationalSituationRoomProps> =
   onJumpToBuoy,
   onClose,
 }) => {
+  const [collapsed, setCollapsed] = React.useState(false);
+
   return (
-    <div className="situation-room-banner">
+    <div className={`situation-room-banner ${collapsed ? 'collapsed' : ''}`}>
       <div className="sr-header">
         <div className="sr-title-group">
           <span className="sr-pulse-dot" />
           <span className="sr-badge">OPERATIONAL SITUATION ROOM</span>
           <span className="sr-subtext">INCOIS National Ocean Decision Support System</span>
         </div>
-        <button className="sr-close-btn" onClick={onClose} title="Switch to Research Workstation">
-          ✕
-        </button>
-      </div>
-
-      <div className="sr-body">
-        {/* Status Metrics Strip */}
-        <div className="sr-metric-tile critical">
-          <div className="sr-tile-icon">🚨</div>
-          <div className="sr-tile-content">
-            <span className="sr-tile-label">CRITICAL WARNING</span>
-            <span className="sr-tile-value">+3.22°C Subsurface Heatwave</span>
-            <span className="sr-tile-sub">Trapped heat at 110m (Float #2902345)</span>
-          </div>
-          <button className="sr-action-btn pulse" onClick={onJumpToAnomaly}>
-            INTERROGATE ➔
+        <div className="sr-header-actions">
+          <button
+            className="sr-toggle-btn"
+            onClick={() => setCollapsed(!collapsed)}
+            title={collapsed ? 'Expand Situation Room' : 'Collapse to Ticker'}
+          >
+            {collapsed ? '▾ EXPAND' : '▴ COLLAPSE'}
+          </button>
+          <button className="sr-close-btn" onClick={onClose} title="Switch to Research Workstation">
+            ✕
           </button>
         </div>
-
-        <div className="sr-metric-tile warning">
-          <div className="sr-tile-icon">🌀</div>
-          <div className="sr-tile-content">
-            <span className="sr-tile-label">CYCLONE RISK (TCHP)</span>
-            <span className="sr-tile-value">78.4 kJ/cm² (Elevated)</span>
-            <span className="sr-tile-sub">Central Bay of Bengal (Buoy BD08)</span>
-          </div>
-          <button className="sr-action-btn" onClick={() => onJumpToBuoy('buoy_BD08')}>
-            INSPECT ➔
-          </button>
-        </div>
-
-        <div className="sr-metric-tile nominal">
-          <div className="sr-tile-icon">🌊</div>
-          <div className="sr-tile-content">
-            <span className="sr-tile-label">COASTAL SURVEILLANCE</span>
-            <span className="sr-tile-value">14 Platforms Synchronized</span>
-            <span className="sr-tile-sub">8 Argo • 5 OMNI/RAMA Buoys • 1 Glider</span>
-          </div>
-          <span className="sr-status-pill live">FEED LIVE</span>
-        </div>
       </div>
+
+      {collapsed ? (
+        <div className="sr-ticker-row">
+          <div className="sr-ticker-item">
+            <span className="sr-ticker-tag critical">🚨 CRITICAL</span>
+            <span className="sr-ticker-text">+3.22°C Subsurface Heatwave (Float #2902345 @ 110m)</span>
+            <button className="sr-ticker-btn" onClick={onJumpToAnomaly}>INTERROGATE ➔</button>
+          </div>
+          <div className="sr-ticker-sep">|</div>
+          <div className="sr-ticker-item">
+            <span className="sr-ticker-tag warning">🌀 CYCLONE</span>
+            <span className="sr-ticker-text">TCHP 78.4 kJ/cm² (Buoy BD08)</span>
+            <button className="sr-ticker-btn" onClick={() => onJumpToBuoy('buoy_BD08')}>INSPECT ➔</button>
+          </div>
+          <div className="sr-ticker-sep">|</div>
+          <div className="sr-ticker-item">
+            <span className="sr-ticker-tag live">📡 LIVE</span>
+            <span className="sr-ticker-text">14 Platforms Synced</span>
+          </div>
+        </div>
+      ) : (
+        <div className="sr-body">
+          {/* Status Metrics Strip */}
+          <div className="sr-metric-tile critical">
+            <div className="sr-tile-icon">🚨</div>
+            <div className="sr-tile-content">
+              <span className="sr-tile-label">CRITICAL WARNING</span>
+              <span className="sr-tile-value">+3.22°C Subsurface Heatwave</span>
+              <span className="sr-tile-sub">Trapped heat at 110m (Float #2902345)</span>
+            </div>
+            <button className="sr-action-btn pulse" onClick={onJumpToAnomaly}>
+              INTERROGATE ➔
+            </button>
+          </div>
+
+          <div className="sr-metric-tile warning">
+            <div className="sr-tile-icon">🌀</div>
+            <div className="sr-tile-content">
+              <span className="sr-tile-label">CYCLONE RISK (TCHP)</span>
+              <span className="sr-tile-value">78.4 kJ/cm² (Elevated)</span>
+              <span className="sr-tile-sub">Central Bay of Bengal (Buoy BD08)</span>
+            </div>
+            <button className="sr-action-btn" onClick={() => onJumpToBuoy('buoy_BD08')}>
+              INSPECT ➔
+            </button>
+          </div>
+
+          <div className="sr-metric-tile nominal">
+            <div className="sr-tile-icon">🌊</div>
+            <div className="sr-tile-content">
+              <span className="sr-tile-label">COASTAL SURVEILLANCE</span>
+              <span className="sr-tile-value">14 Platforms Synchronized</span>
+              <span className="sr-tile-sub">8 Argo • 5 OMNI/RAMA Buoys • 1 Glider</span>
+            </div>
+            <span className="sr-status-pill live">FEED LIVE</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

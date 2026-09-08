@@ -13,6 +13,10 @@
   font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
 }
 
+.info-panel.with-layer-rail {
+  left: 278px;
+}
+
 .info-panel::before {
   content: 'TELEMETRY // HUD';
   display: block;

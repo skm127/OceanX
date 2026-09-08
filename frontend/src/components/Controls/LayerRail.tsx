@@ -160,7 +160,6 @@ export const LayerRail: React.FC<LayerRailProps> = ({
               <div className="category-items">
                 <label
                   className={`feed-item ${variable === 'thetao' ? 'active' : ''}`}
-                  onClick={() => onVariableChange('thetao')}
                 >
                   <input
                     type="radio"
@@ -174,7 +173,6 @@ export const LayerRail: React.FC<LayerRailProps> = ({
 
                 <label
                   className={`feed-item ${variable === 'so' ? 'active' : ''}`}
-                  onClick={() => onVariableChange('so')}
                 >
                   <input
                     type="radio"
@@ -188,7 +186,6 @@ export const LayerRail: React.FC<LayerRailProps> = ({
 
                 <label
                   className={`feed-item ${showCurrents ? 'active' : ''}`}
-                  onClick={onToggleCurrents}
                 >
                   <input
                     type="checkbox"
@@ -215,7 +212,6 @@ export const LayerRail: React.FC<LayerRailProps> = ({
               <div className="category-items">
                 <label
                   className={`feed-item ${showArgo ? 'active' : ''}`}
-                  onClick={onToggleArgo}
                 >
                   <input
                     type="checkbox"
@@ -254,7 +250,6 @@ export const LayerRail: React.FC<LayerRailProps> = ({
               <div className="category-items">
                 <label
                   className={`feed-item ${showSST ? 'active' : ''}`}
-                  onClick={onToggleSST}
                 >
                   <input
                     type="checkbox"
@@ -287,7 +282,6 @@ export const LayerRail: React.FC<LayerRailProps> = ({
               <div className="category-items">
                 <label
                   className={`feed-item ${showCyclones ? 'active' : ''}`}
-                  onClick={onToggleCyclones}
                 >
                   <input
                     type="checkbox"

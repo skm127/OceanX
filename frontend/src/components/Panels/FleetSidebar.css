@@ -19,6 +19,10 @@
   animation: fleetSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.fleet-sidebar.with-layer-rail {
+  left: 278px;
+}
+
 @keyframes fleetSlideIn {
   from {
     opacity: 0;

@@ -1,9 +1,9 @@
 /* Enhanced LayerRail.css */
 .layer-rail {
   position: absolute;
-  top: 68px;
+  top: 14px;
   left: 0;
-  bottom: 120px;
+  bottom: 14px;
   z-index: 110;
   display: flex;
   pointer-events: none;

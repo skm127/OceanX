@@ -30,7 +30,6 @@ export default function OceanDataLayer({
   onHoverCoord,
 }: OceanDataLayerProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const textureRef = useRef<THREE.DataTexture | null>(null);
 
   // Create the curved surface geometry for the data region
   const geometry = useMemo(() => {
@@ -52,8 +51,8 @@ export default function OceanDataLayer({
       for (let j = 0; j <= lonSteps; j++) {
         const lat = latMin + (latMax - latMin) * (i / latSteps);
         const lon = lonMin + (lonMax - lonMin) * (j / lonSteps);
-        // Slightly above globe surface to prevent z-fighting
-        const pos = latLonToVector3(lat, lon, GLOBE_RADIUS + 0.008);
+        // Positioned cleanly above globe surface to prevent z-fighting
+        const pos = latLonToVector3(lat, lon, GLOBE_RADIUS + 0.014);
         vertices.push(pos.x, pos.y, pos.z);
         // UV: j maps to longitude (u), i maps to latitude (v)
         // Note: texture row 0 = lat_min (bottom of data), so v = i/latSteps
@@ -78,8 +77,9 @@ export default function OceanDataLayer({
     return geo;
   }, [data.latMin, data.latMax, data.lonMin, data.lonMax, data.height, data.width]);
 
-  // Create / update texture when data changes
-  useEffect(() => {
+  // Create DataTexture whenever data or opacity changes
+  const texture = useMemo(() => {
+    if (!data.values || data.values.length === 0) return null;
     const colormap = getColormap(data.variable);
     const rgba = valuesToRGBA(
       data.values,
@@ -92,38 +92,28 @@ export default function OceanDataLayer({
       6
     );
 
-    // Create DataTexture — data is stored row-major: [lat0_lon0, lat0_lon1, ...]
-    // Height = number of lat rows, Width = number of lon columns
-    const texture = new THREE.DataTexture(
+    const tex = new THREE.DataTexture(
       rgba,
       data.width,
       data.height,
       THREE.RGBAFormat,
       THREE.UnsignedByteType
     );
-    texture.needsUpdate = true;
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-
-    // Dispose old texture
-    if (textureRef.current) {
-      textureRef.current.dispose();
-    }
-    textureRef.current = texture;
-
-    // Update mesh material
-    if (meshRef.current) {
-      const material = meshRef.current.material as THREE.MeshBasicMaterial;
-      material.map = texture;
-      material.needsUpdate = true;
-    }
-
-    return () => {
-      texture.dispose();
-    };
+    tex.needsUpdate = true;
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    return tex;
   }, [data.values, data.width, data.height, data.vMin, data.vMax, data.variable, opacity]);
+
+  useEffect(() => {
+    return () => {
+      if (texture) {
+        texture.dispose();
+      }
+    };
+  }, [texture]);
 
   const handleClick = (e: any) => {
     e.stopPropagation();
@@ -162,12 +152,14 @@ export default function OceanDataLayer({
     <mesh
       ref={meshRef}
       geometry={geometry}
+      renderOrder={5}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       onPointerMove={handlePointerMove}
       onPointerOut={handlePointerOut}
     >
       <meshBasicMaterial
+        map={texture ?? undefined}
         transparent
         opacity={opacity}
         side={THREE.DoubleSide}

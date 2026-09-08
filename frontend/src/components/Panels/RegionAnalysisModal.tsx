@@ -3,17 +3,23 @@
  * PRD Section 16 & Image 2: Regional Scientific Analysis.
  * Computes surface area, statistical distributions, observations count, and model errors for any bounding box.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { calculateRegionStats } from '../../services/api';
-import type { RegionStatsResponse } from '../../types';
+import { interpolateColor, getColormap } from '../../utils/colormap';
+import type { OceanSliceData } from '../../hooks/useOceanData';
+import { VARIABLE_LABELS, VARIABLE_UNITS, type OceanVariable, type RegionStatsResponse } from '../../types';
 import './RegionAnalysisModal.css';
 
 interface RegionAnalysisModalProps {
   initialBounds?: { latMin: number; latMax: number; lonMin: number; lonMax: number };
   depth: number;
   timeIndex: number;
+  variable: OceanVariable;
+  sliceData: OceanSliceData | null;
+  date: string;
   onClose: () => void;
   onFocusRegion?: (latMin: number, latMax: number, lonMin: number, lonMax: number) => void;
+  onInspectCoordinate?: (lat: number, lon: number) => void;
 }
 
 const REGION_PRESETS = [
@@ -27,13 +33,19 @@ export const RegionAnalysisModal: React.FC<RegionAnalysisModalProps> = ({
   initialBounds = { latMin: 10, latMax: 22, lonMin: 80, lonMax: 92 },
   depth,
   timeIndex,
+  variable,
+  sliceData,
+  date,
   onClose,
   onFocusRegion,
+  onInspectCoordinate,
 }) => {
   const [bounds, setBounds] = useState(initialBounds);
   const [stats, setStats] = useState<RegionStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'overview' | 'heatmap' | 'anomalies'>('heatmap');
+  const [selectedCell, setSelectedCell] = useState<{ lat: number; lon: number; value: number; anomalyScore: number } | null>(null);
 
   const fetchStats = (b: typeof bounds) => {
     setLoading(true);
@@ -45,6 +57,7 @@ export const RegionAnalysisModal: React.FC<RegionAnalysisModalProps> = ({
       lon_max: b.lonMax,
       depth,
       time_index: timeIndex,
+      variable,
     })
       .then((data) => {
         setStats(data);
@@ -58,7 +71,56 @@ export const RegionAnalysisModal: React.FC<RegionAnalysisModalProps> = ({
 
   useEffect(() => {
     fetchStats(bounds);
-  }, [depth, timeIndex]);
+  }, [depth, timeIndex, variable]);
+
+  const heatmapCells = useMemo(() => {
+    if (!sliceData) return [];
+
+    const rows = 12;
+    const columns = 18;
+    const values: Array<{ lat: number; lon: number; value: number; row: number; column: number }> = [];
+
+    for (let row = 0; row < rows; row += 1) {
+      const lat = bounds.latMax - ((bounds.latMax - bounds.latMin) * row) / (rows - 1);
+      const dataRow = Math.round(((lat - sliceData.latMin) / (sliceData.latMax - sliceData.latMin)) * (sliceData.height - 1));
+
+      for (let column = 0; column < columns; column += 1) {
+        const lon = bounds.lonMin + ((bounds.lonMax - bounds.lonMin) * column) / (columns - 1);
+        const dataColumn = Math.round(((lon - sliceData.lonMin) / (sliceData.lonMax - sliceData.lonMin)) * (sliceData.width - 1));
+        const value = sliceData.values[dataRow * sliceData.width + dataColumn];
+
+        if (Number.isFinite(value) && value > -9998) {
+          values.push({ lat, lon, value, row, column });
+        }
+      }
+    }
+
+    const mean = values.reduce((sum, cell) => sum + cell.value, 0) / (values.length || 1);
+    const variance = values.reduce((sum, cell) => sum + (cell.value - mean) ** 2, 0) / (values.length || 1);
+    const standardDeviation = Math.sqrt(variance) || 1;
+    const colormap = getColormap(sliceData.variable);
+    const range = sliceData.vMax - sliceData.vMin || 1;
+
+    return values.map((cell) => {
+      const normalizedValue = Math.max(0, Math.min(1, (cell.value - sliceData.vMin) / range));
+      const [red, green, blue] = interpolateColor(colormap, normalizedValue);
+      const anomalyScore = (cell.value - mean) / standardDeviation;
+      const anomalyColor = anomalyScore >= 0
+        ? `rgba(248, 113, 113, ${Math.min(0.95, 0.2 + Math.abs(anomalyScore) * 0.32)})`
+        : `rgba(96, 165, 250, ${Math.min(0.95, 0.2 + Math.abs(anomalyScore) * 0.32)})`;
+
+      return {
+        ...cell,
+        color: `rgb(${red}, ${green}, ${blue})`,
+        anomalyColor,
+        anomalyScore,
+      };
+    });
+  }, [bounds, sliceData]);
+
+  useEffect(() => {
+    setSelectedCell(null);
+  }, [bounds, sliceData]);
 
   const handleApplyPreset = (preset: (typeof REGION_PRESETS)[0]) => {
     const newB = {
@@ -97,7 +159,7 @@ export const RegionAnalysisModal: React.FC<RegionAnalysisModalProps> = ({
           {REGION_PRESETS.map((p) => (
             <button
               key={p.name}
-              className={`preset-btn ${bounds.latMin === p.latMin && bounds.lonMin === p.lonMin ? 'active' : ''}`}
+              className={`region-preset-btn ${bounds.latMin === p.latMin && bounds.lonMin === p.lonMin ? 'active' : ''}`}
               onClick={() => handleApplyPreset(p)}
             >
               {p.name}
@@ -105,8 +167,96 @@ export const RegionAnalysisModal: React.FC<RegionAnalysisModalProps> = ({
           ))}
         </div>
 
+        <div className="region-view-tabs" role="tablist" aria-label="Region visualization">
+          <button
+            type="button"
+            className={`region-view-tab ${activeView === 'heatmap' ? 'active' : ''}`}
+            onClick={() => setActiveView('heatmap')}
+            role="tab"
+            aria-selected={activeView === 'heatmap'}
+          >
+            Heat map
+          </button>
+          <button
+            type="button"
+            className={`region-view-tab ${activeView === 'anomalies' ? 'active' : ''}`}
+            onClick={() => setActiveView('anomalies')}
+            role="tab"
+            aria-selected={activeView === 'anomalies'}
+          >
+            Anomaly screen
+          </button>
+          <button
+            type="button"
+            className={`region-view-tab ${activeView === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveView('overview')}
+            role="tab"
+            aria-selected={activeView === 'overview'}
+          >
+            Statistics
+          </button>
+        </div>
+
         {/* Content */}
         <div className="region-content">
+          {activeView !== 'overview' && (
+            <section className="region-heatmap-section">
+              <div className="region-heatmap-heading">
+                <div>
+                  <span className="region-heatmap-eyebrow">SELECTED MODEL SLICE</span>
+                  <h3>{activeView === 'heatmap' ? `${VARIABLE_LABELS[variable]} heat map` : 'Spatial anomaly screening'}</h3>
+                </div>
+                <span className="region-slice-meta">{date} · {depth} m</span>
+              </div>
+
+              <p className="region-heatmap-description">
+                {activeView === 'heatmap'
+                  ? `Each cell shows ${VARIABLE_LABELS[variable].toLowerCase()} from the active ${VARIABLE_UNITS[variable]} slice. Select a cell to inspect that place on the globe.`
+                  : 'Warm/red and cool/blue cells are departures from this region’s selected-slice average. This is a screening view, not an observation-validated alert.'}
+              </p>
+
+              {heatmapCells.length > 0 ? (
+                <>
+                  <div className="region-heatmap-frame">
+                    <span className="region-map-axis north">N</span>
+                    <span className="region-map-axis west">W</span>
+                    <div className="region-heatmap-grid" role="grid" aria-label="Regional ocean data grid">
+                      {heatmapCells.map((cell) => (
+                        <button
+                          type="button"
+                          key={`${cell.row}-${cell.column}`}
+                          className={`region-heat-cell ${selectedCell?.lat === cell.lat && selectedCell?.lon === cell.lon ? 'selected' : ''}`}
+                          style={{ background: activeView === 'heatmap' ? cell.color : cell.anomalyColor }}
+                          onClick={() => {
+                            setSelectedCell(cell);
+                            onInspectCoordinate?.(cell.lat, cell.lon);
+                          }}
+                          title={`${cell.lat.toFixed(2)}°N, ${cell.lon.toFixed(2)}°E · ${cell.value.toFixed(2)} ${VARIABLE_UNITS[variable]}`}
+                          aria-label={`Inspect ${cell.lat.toFixed(2)} degrees north, ${cell.lon.toFixed(2)} degrees east`}
+                        />
+                      ))}
+                    </div>
+                    <span className="region-map-axis east">E</span>
+                    <span className="region-map-axis south">S</span>
+                  </div>
+                  <div className="region-heatmap-legend">
+                    <span>{activeView === 'heatmap' ? `${sliceData?.vMin.toFixed(1)} ${VARIABLE_UNITS[variable]}` : 'Cooler than regional mean'}</span>
+                    <span className={`region-legend-ramp ${activeView}`} />
+                    <span>{activeView === 'heatmap' ? `${sliceData?.vMax.toFixed(1)} ${VARIABLE_UNITS[variable]}` : 'Warmer than regional mean'}</span>
+                  </div>
+                  {selectedCell && (
+                    <div className="region-cell-inspector">
+                      <span><strong>{selectedCell.lat.toFixed(2)}°N, {selectedCell.lon.toFixed(2)}°E</strong> · {selectedCell.value.toFixed(2)} {VARIABLE_UNITS[variable]}</span>
+                      <span>{selectedCell.anomalyScore >= 0 ? '+' : ''}{selectedCell.anomalyScore.toFixed(1)}σ from regional mean</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="region-empty-state">No valid values are available for this region and time slice.</div>
+              )}
+            </section>
+          )}
+
           {loading && (
             <div className="region-loading">
               <div className="region-spinner" />
@@ -120,7 +270,7 @@ export const RegionAnalysisModal: React.FC<RegionAnalysisModalProps> = ({
             </div>
           )}
 
-          {!loading && stats && (
+          {activeView === 'overview' && !loading && stats && (
             <>
               {/* Primary KPI Row */}
               <div className="region-kpi-grid">

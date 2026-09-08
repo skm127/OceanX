@@ -281,7 +281,7 @@ export function getMockCurrentVectors(depth: number = 0, _timeIndex: number = 0)
         const u = Number((Math.sin(lat * 0.3) * 0.5 * depthAtten).toFixed(2));
         const v = Number((Math.cos(lon * 0.3) * 0.4 * depthAtten).toFixed(2));
         const speed = Number(Math.sqrt(u * u + v * v).toFixed(2));
-        vectors.push({ lat, lon, u, v, speed });
+        vectors.push({ lat, lon, uo: u, vo: v, speed });
       }
     }
   }

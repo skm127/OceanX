@@ -29,10 +29,13 @@ interface GlobeProps {
   oceanOpacity?: number;
   depthLevels?: number[];
   cameraPitch?: number;
+  showVolumetricBlock?: boolean;
+  verticalExaggeration?: number;
   onSelectArgo?: (id: string) => void;
   onProbeCoordinate?: (coord: { lat: number; lon: number }) => void;
   onContextMenuCoordinate?: (coord: { lat: number; lon: number }) => void;
   onHoverCoordinate?: (coord: { lat: number; lon: number } | null) => void;
+  onCameraFlightComplete?: () => void;
 }
 
 
@@ -93,19 +96,6 @@ function EarthMesh() {
           opacity={0.04}
           side={THREE.BackSide}
           blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-
-      {/* Subtle cloud layer */}
-      <mesh>
-        <sphereGeometry args={[GLOBE_RADIUS * 1.008, 64, 64]} />
-        <meshStandardMaterial
-          color="#ffffff"
-          transparent
-          opacity={0.15}
-          roughness={0.8}
-          metalness={0.0}
-          blending={THREE.NormalBlending}
         />
       </mesh>
     </group>
@@ -226,11 +216,31 @@ function TacticalSurveillanceGrid() {
 }
 
 /** Smoothly lerps camera position when user selects a sector or float */
-function CameraLerpController({ targetPosition }: { targetPosition?: THREE.Vector3 | null }) {
+function CameraLerpController({
+  targetPosition,
+  onComplete,
+}: {
+  targetPosition?: THREE.Vector3 | null;
+  onComplete?: () => void;
+}) {
   const { camera } = useThree();
+  const completedRef = React.useRef(false);
+  const previousTargetRef = React.useRef<THREE.Vector3 | null>(null);
+
   useFrame((_, delta) => {
     if (targetPosition) {
+      if (previousTargetRef.current !== targetPosition) {
+        previousTargetRef.current = targetPosition;
+        completedRef.current = false;
+      }
       camera.position.lerp(targetPosition, Math.min(1, delta * 3.2));
+      if (!completedRef.current && camera.position.distanceTo(targetPosition) < 0.025) {
+        completedRef.current = true;
+        onComplete?.();
+      }
+    } else {
+      previousTargetRef.current = null;
+      completedRef.current = false;
     }
   });
   return null;
@@ -277,10 +287,13 @@ export default function Globe({
   oceanOpacity = 0.82,
   depthLevels = [0, 5, 10, 20, 30, 50, 75, 100, 150, 200, 250, 300, 400, 500],
   cameraPitch = 50,
+  showVolumetricBlock = true,
+  verticalExaggeration = 1.0,
   onSelectArgo,
   onProbeCoordinate,
   onContextMenuCoordinate,
   onHoverCoordinate,
+  onCameraFlightComplete,
 }: GlobeProps) {
   const cameraPos = getBayOfBengalCameraPosition(6.8);
 
@@ -314,7 +327,7 @@ export default function Globe({
         <Stars radius={80} depth={50} count={4000} factor={4} fade speed={0.5} />
 
         {/* Dynamic Smooth Camera Transition */}
-        <CameraLerpController targetPosition={targetCameraPos} />
+        <CameraLerpController targetPosition={targetCameraPos} onComplete={onCameraFlightComplete} />
 
         {/* NASA Earth Globe */}
         <Earth />
@@ -346,8 +359,8 @@ export default function Globe({
             depthLevels={depthLevels}
             currentDepth={sliceData.depth}
             variable={sliceData.variable}
-            verticalExaggeration={1.0}
-            visible={true}
+            verticalExaggeration={verticalExaggeration}
+            visible={showVolumetricBlock}
           />
         )}
 
@@ -373,7 +386,9 @@ export default function Globe({
 
         {/* Camera Controls with Dynamic Google Earth Pitch */}
         <OrbitControls
-          enablePan={false}
+          enablePan
+          enableDamping
+          dampingFactor={0.08}
           minDistance={4.0}
           maxDistance={12}
           minPolarAngle={THREE.MathUtils.degToRad(Math.max(15, 90 - cameraPitch))}

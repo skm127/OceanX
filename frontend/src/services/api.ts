@@ -40,6 +40,17 @@ const api = axios.create({
   timeout: 8000,
 });
 
+api.interceptors.response.use((response) => {
+  const requestPath = response.config.url ?? '';
+  const contentType = String(response.headers['content-type'] ?? '');
+
+  if (requestPath.startsWith('/api/') && contentType.includes('text/html')) {
+    return Promise.reject(new Error('Ocean API is unavailable at the configured endpoint'));
+  }
+
+  return response;
+});
+
 export type DataSourceMode = 'live' | 'demo';
 
 let currentMode: DataSourceMode = 'live';
@@ -102,6 +113,9 @@ export async function getModelInfo(): Promise<DatasetInfo> {
   }
   try {
     const res = await api.get('/api/model/info');
+    if (!res.data || !Array.isArray(res.data.depth_levels) || !Array.isArray(res.data.variables)) {
+      throw new Error('Model information response is invalid');
+    }
     notifySuccess();
     return res.data;
   } catch {
@@ -133,9 +147,16 @@ export async function getModelSlice(
       if (val) metadata[key] = val;
     });
 
+    const width = Number(metadata['x-width']);
+    const height = Number(metadata['x-height']);
+    const data = new Float32Array(res.data);
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || data.length !== width * height) {
+      throw new Error('Model slice response is incomplete or invalid');
+    }
+
     notifySuccess();
     return {
-      data: new Float32Array(res.data),
+      data,
       metadata,
     };
   } catch {
@@ -270,6 +291,9 @@ export async function getTimeInfo(): Promise<{ dates: string[]; count: number }>
   }
   try {
     const res = await api.get('/api/model/time_info');
+    if (!res.data || !Array.isArray(res.data.dates)) {
+      throw new Error('Model time response is invalid');
+    }
     notifySuccess();
     return res.data;
   } catch {
