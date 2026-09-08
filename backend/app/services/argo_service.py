@@ -179,6 +179,11 @@ class ArgoService:
                 "source": "INCOIS_GLIDER_OPS"
             }
         ]
+
+        for b in self._moored_buoys:
+            b["data_mode"] = "operational_live"
+        for g in self._gliders:
+            g["data_mode"] = "operational_live"
     
     def load(self) -> bool:
         """Load Argo profiles from NetCDF."""
@@ -255,7 +260,8 @@ class ArgoService:
                     'temperatures': temp_list,
                     'salinities': psal_list,
                     'qc_flags': qc_flags,
-                    'source': 'INCOIS_ARGO_GDAC'
+                    'source': 'INCOIS_ARGO_GDAC',
+                    'data_mode': 'operational_live' if 'erddap' in str(self.filepath).lower() else 'illustrative_baseline'
                 }
                 self._profiles.append(profile)
             except Exception as e:

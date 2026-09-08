@@ -71,6 +71,7 @@ def calculate_region_stats(payload: BoundingBoxRequest, request: Request):
     """Calculate comprehensive statistical telemetry over a geographic bounding box."""
     nc_service = request.app.state.nc_service
     argo_service = request.app.state.argo_service
+    cache_service = getattr(request.app.state, "cache_service", None)
 
     if not nc_service.is_loaded:
         raise HTTPException(status_code=503, detail="Model data not loaded")
@@ -79,6 +80,12 @@ def calculate_region_stats(payload: BoundingBoxRequest, request: Request):
     lat_max = max(payload.lat_min, payload.lat_max)
     lon_min = min(payload.lon_min, payload.lon_max)
     lon_max = max(payload.lon_min, payload.lon_max)
+
+    cache_key = f"region_stats:{lat_min}:{lat_max}:{lon_min}:{lon_max}:{payload.depth}:{payload.time_index}:{payload.variable}"
+    if cache_service:
+        cached = cache_service.get(cache_key)
+        if cached:
+            return cached
 
     mean_lat_rad = math.radians((lat_min + lat_max) / 2.0)
     d_lat_km = (lat_max - lat_min) * 111.0
@@ -156,7 +163,7 @@ def calculate_region_stats(payload: BoundingBoxRequest, request: Request):
                     "percentage": round(float(counts[k] / len(valid_temp) * 100), 1)
                 })
 
-        return {
+        result = {
             "bounds": {
                 "lat_min": lat_min, "lat_max": lat_max,
                 "lon_min": lon_min, "lon_max": lon_max,
@@ -185,6 +192,9 @@ def calculate_region_stats(payload: BoundingBoxRequest, request: Request):
             "anomalies_detected": anomaly_count,
             "sample_points": len(valid_temp)
         }
+        if cache_service:
+            cache_service.set(cache_key, result, ttl_seconds=900)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Regional statistical calculation failed: {str(e)}")
 
@@ -193,8 +203,15 @@ def calculate_region_stats(payload: BoundingBoxRequest, request: Request):
 def calculate_ocean_transect(payload: TransectRequest, request: Request):
     """Generate 2D vertical cross-section grid (Depth vs Distance) along transect line A -> B."""
     nc_service = request.app.state.nc_service
+    cache_service = getattr(request.app.state, "cache_service", None)
     if not nc_service.is_loaded:
         raise HTTPException(status_code=503, detail="Model data not loaded")
+
+    cache_key = f"transect:{payload.lat1}:{payload.lon1}:{payload.lat2}:{payload.lon2}:{payload.variable}:{payload.time_index}:{payload.num_samples}"
+    if cache_service:
+        cached = cache_service.get(cache_key)
+        if cached:
+            return cached
 
     n_pts = payload.num_samples
     total_dist_km = haversine_km(payload.lat1, payload.lon1, payload.lat2, payload.lon2)
@@ -224,19 +241,18 @@ def calculate_ocean_transect(payload: TransectRequest, request: Request):
                 all_depths = depths_i
 
             stations.append({
-                "index": i,
+                "station_index": i,
                 "lat": lat_i,
                 "lon": lon_i,
-                "dist_km": dist_i,
+                "distance_km": dist_i,
                 "values": vals_i
             })
 
-        num_depths = len(all_depths) if all_depths else 0
         all_vals_flat = []
-        for d_idx in range(num_depths):
+        for d_idx in range(len(all_depths)):
             row = []
-            for st in stations:
-                v = st["values"][d_idx]
+            for s_idx in range(n_pts):
+                v = stations[s_idx]["values"][d_idx]
                 row.append(v)
                 if v is not None:
                     all_vals_flat.append(v)
@@ -244,7 +260,7 @@ def calculate_ocean_transect(payload: TransectRequest, request: Request):
 
         unit = "°C" if payload.variable == "thetao" else "PSU" if payload.variable == "so" else "m/s"
 
-        return {
+        result = {
             "variable": payload.variable,
             "unit": unit,
             "point_a": {"lat": payload.lat1, "lon": payload.lon1},
@@ -258,6 +274,9 @@ def calculate_ocean_transect(payload: TransectRequest, request: Request):
             "max_val": round(max(all_vals_flat), 2) if all_vals_flat else 0.0,
             "time_index": payload.time_index
         }
+        if cache_service:
+            cache_service.set(cache_key, result, ttl_seconds=900)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transect interpolation failed: {str(e)}")
 
@@ -586,9 +605,16 @@ def colocate_observations(
     """
     nc_service = request.app.state.nc_service
     argo_service = request.app.state.argo_service
+    cache_service = getattr(request.app.state, "cache_service", None)
 
     if not nc_service.is_loaded or not argo_service.is_loaded:
         raise HTTPException(status_code=503, detail="Ocean data services not fully loaded")
+
+    cache_key = f"colocate:{lat}:{lon}:{radius_km}:{time_window_hours}:{variable}:{time_index}"
+    if cache_service:
+        cached = cache_service.get(cache_key)
+        if cached:
+            return cached
 
     query_time = datetime(2024, 8, 8, 12, 0, 0, tzinfo=timezone.utc)
     candidates = []
@@ -613,7 +639,7 @@ def colocate_observations(
 
     candidates.sort(key=lambda x: x["match_score"], reverse=True)
 
-    return {
+    result = {
         "query": {
             "latitude": lat,
             "longitude": lon,
@@ -627,3 +653,6 @@ def colocate_observations(
         "matches": candidates,
         "candidates": candidates
     }
+    if cache_service:
+        cache_service.set(cache_key, result, ttl_seconds=900)
+    return result
