@@ -4,8 +4,10 @@
  * Instant spatial lookup for regions, platforms, anomalies, and coordinates.
  */
 import React, { useState, useEffect, useRef } from 'react';
+import useModalA11y from '../../hooks/useModalA11y';
 import type { ArgoProfileSummary } from '../../types';
 import './GlobalSearchModal.css';
+
 
 interface GlobalSearchModalProps {
   isOpen: boolean;
@@ -36,8 +38,12 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  useModalA11y(isOpen, onClose, cardRef);
 
   useEffect(() => {
+
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
       setQuery('');
@@ -148,8 +154,17 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
   return (
     <div className="search-modal-overlay" onClick={onClose}>
-      <div className="search-modal-card" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={cardRef}
+        className="search-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Global Ocean Spatial Search"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="search-input-box">
+
           <span className="search-icon">🔍</span>
           <input
             ref={inputRef}

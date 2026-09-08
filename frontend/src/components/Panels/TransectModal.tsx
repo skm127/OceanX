@@ -4,10 +4,13 @@
  * Renders 2D vertical depth-vs-distance contour cross sections across arbitrary oceanic transect lines.
  */
 import React, { useState, useEffect, useRef } from 'react';
+import useModalA11y from '../../hooks/useModalA11y';
+import { showToast } from '../../utils/toast';
 import { calculateTransect } from '../../services/api';
 import type { TransectResponse } from '../../types';
 import { getColormapColor } from '../../utils/colormap';
 import './TransectModal.css';
+
 
 interface TransectModalProps {
   initialLine?: { lat1: number; lon1: number; lat2: number; lon2: number };
@@ -40,8 +43,22 @@ export const TransectModal: React.FC<TransectModalProps> = ({
   } | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const modalCardRef = useRef<HTMLDivElement | null>(null);
+
+  useModalA11y(true, onClose, modalCardRef);
 
   const loadTransect = (l: typeof line, v: typeof variable) => {
+    // Validate minimum distance (50km requirement)
+    const dLat = (l.lat2 - l.lat1) * 111.0;
+    const dLon = (l.lon2 - l.lon1) * 111.0 * Math.cos((((l.lat1 + l.lat2) / 2) * Math.PI) / 180);
+    const approxDist = Math.sqrt(dLat * dLat + dLon * dLon);
+    if (approxDist < 50.0) {
+      showToast('Transect points must be at least 50km apart for meaningful depth sounding', 'warning', 'Invalid Transect Distance');
+      setError('Transect points must be at least 50km apart');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     calculateTransect({
@@ -58,10 +75,13 @@ export const TransectModal: React.FC<TransectModalProps> = ({
         setLoading(false);
       })
       .catch((err) => {
-        setError(err.message || 'Failed to interpolate transect cross-section');
+        const msg = err.response?.data?.detail || err.message || 'Failed to interpolate transect cross-section';
+        showToast(msg, 'error', 'Transect Error');
+        setError(msg);
         setLoading(false);
       });
   };
+
 
   useEffect(() => {
     loadTransect(line, variable);
@@ -166,8 +186,17 @@ export const TransectModal: React.FC<TransectModalProps> = ({
 
   return (
     <div className="transect-modal-overlay" onClick={onClose}>
-      <div className="transect-modal-card" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={modalCardRef}
+        className="transect-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ocean Transect Vertical Sounding"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
+
         <div className="transect-header">
           <div className="transect-badge-row">
             <span className="transect-tag">⟂ 2D VERTICAL SOUNDING TRANSECT</span>

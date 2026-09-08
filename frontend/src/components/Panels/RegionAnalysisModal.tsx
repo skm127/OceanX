@@ -3,12 +3,14 @@
  * PRD Section 16 & Image 2: Regional Scientific Analysis.
  * Computes surface area, statistical distributions, observations count, and model errors for any bounding box.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import useModalA11y from '../../hooks/useModalA11y';
 import { calculateRegionStats } from '../../services/api';
 import { interpolateColor, getColormap } from '../../utils/colormap';
 import type { OceanSliceData } from '../../hooks/useOceanData';
 import { VARIABLE_LABELS, VARIABLE_UNITS, type OceanVariable, type RegionStatsResponse } from '../../types';
 import './RegionAnalysisModal.css';
+
 
 interface RegionAnalysisModalProps {
   initialBounds?: { latMin: number; latMax: number; lonMin: number; lonMax: number };
@@ -46,8 +48,12 @@ export const RegionAnalysisModal: React.FC<RegionAnalysisModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'overview' | 'heatmap' | 'anomalies'>('heatmap');
   const [selectedCell, setSelectedCell] = useState<{ lat: number; lon: number; value: number; anomalyScore: number } | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useModalA11y(true, onClose, cardRef);
 
   const fetchStats = (b: typeof bounds) => {
+
     setLoading(true);
     setError(null);
     calculateRegionStats({
@@ -138,8 +144,17 @@ export const RegionAnalysisModal: React.FC<RegionAnalysisModalProps> = ({
 
   return (
     <div className="region-modal-overlay" onClick={onClose}>
-      <div className="region-modal-card" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={cardRef}
+        className="region-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Regional Scientific Analysis"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
+
         <div className="region-header">
           <div className="region-badge-row">
             <span className="region-tag">⬚ SPATIAL COMPUTING & INTEGRATION</span>

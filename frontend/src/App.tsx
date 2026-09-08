@@ -26,6 +26,9 @@ import HoverSounderHUD from './components/Controls/HoverSounderHUD';
 import DataSourceBadge from './components/Controls/DataSourceBadge';
 import ViewportControls from './components/Controls/ViewportControls';
 import ProductModeSelector, { type ProductMode } from './components/Controls/ProductModeSelector';
+import ToastContainer from './components/Controls/ToastContainer';
+import OnboardingHint from './components/Controls/OnboardingHint';
+
 import { useOceanData } from './hooks/useOceanData';
 import { useCurrentVectors } from './hooks/useCurrentVectors';
 import { useArgoData } from './hooks/useArgoData';
@@ -462,8 +465,15 @@ function App() {
 
   return (
     <div className="app">
+      {/* Real-time Scientific & Operational Toast Notifications */}
+      <ToastContainer />
+
+      {/* First-Run Operational Orientation Hint */}
+      <OnboardingHint />
+
       {/* Scientific Ocean Intelligence Header */}
       <header className="top-bar">
+
         <div className="top-bar-left">
           <div className="logo">
             <div className="logo-hex">⬡</div>

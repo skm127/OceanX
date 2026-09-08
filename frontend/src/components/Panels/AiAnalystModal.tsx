@@ -3,10 +3,13 @@
  * PRD Section 21-23: Grounded Ocean Analyst AI.
  * Grounded in real mathematical residuals against NEMO model and in-situ Argo observations.
  */
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import useModalA11y from '../../hooks/useModalA11y';
+import { showToast } from '../../utils/toast';
 import { queryAiAnalyst } from '../../services/api';
 import type { AiAnalystResponse } from '../../types';
 import './AiAnalystModal.css';
+
 
 interface AiAnalystModalProps {
   isOpen: boolean;
@@ -38,6 +41,9 @@ export const AiAnalystModal: React.FC<AiAnalystModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<AiAnalystResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useModalA11y(isOpen, onClose, cardRef);
 
   const handleRunAnalysis = (queryToRun: string) => {
     setLoading(true);
@@ -54,7 +60,9 @@ export const AiAnalystModal: React.FC<AiAnalystModalProps> = ({
         setLoading(false);
       })
       .catch((err) => {
-        setError(err.message || 'AI grounding calculation failed');
+        const msg = err.response?.data?.detail || err.message || 'AI grounding calculation failed';
+        showToast(msg, 'error', 'AI Analyst Error');
+        setError(msg);
         setLoading(false);
       });
   };
@@ -63,8 +71,17 @@ export const AiAnalystModal: React.FC<AiAnalystModalProps> = ({
 
   return (
     <div className="ai-modal-overlay" onClick={onClose}>
-      <div className="ai-modal-card" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={cardRef}
+        className="ai-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Grounded Oceanographic Analyst"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
+
         <div className="ai-header">
           <div className="ai-badge-row">
             <span className="ai-badge-tag">✦ GROUNDED OCEANOGRAPHIC INTELLIGENCE</span>

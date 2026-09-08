@@ -3,8 +3,10 @@
  * Direct Model vs Reality comparison with depth profiles,
  * ML Anomaly Intelligence, Root Cause Diagnosis, and INCOIS Data Export.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import useModalA11y from '../../hooks/useModalA11y';
 import { compareProfile, getArgoProfile, detectAnomaly } from '../../services/api';
+
 import type {
   ComparisonResponse,
   ArgoProfile,
@@ -38,8 +40,12 @@ export default function ComparisonPanel({
   const [activeTab, setActiveTab] = useState<'comparison' | 'table' | 'intelligence'>('comparison');
   const [threshold, setThreshold] = useState<number>(1.0);
   const [hoveredDepth, setHoveredDepth] = useState<number | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useModalA11y(Boolean(profileId), onClose, panelRef);
 
   useEffect(() => {
+
     if (!profileId) return;
 
     setLoading(true);
@@ -139,8 +145,16 @@ export default function ComparisonPanel({
   const hoveredComp = hoveredDepth !== null ? comparisons.find((c) => c.depth === hoveredDepth) : null;
 
   return (
-    <div className="comparison-panel">
+    <div
+      ref={panelRef}
+      className="comparison-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Model vs In-Situ Observation Comparison"
+      tabIndex={-1}
+    >
       {/* Panel Header */}
+
       <div className="panel-header">
         <div className="header-info">
           <div className="header-badge-row">

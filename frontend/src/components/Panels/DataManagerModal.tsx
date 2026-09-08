@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
+import useModalA11y from '../../hooks/useModalA11y';
 import './DataManagerModal.css';
 
 interface DataManagerModalProps {
   onClose: () => void;
 }
+
 
 const GRID_INFO = {
   model: 'INCOIS NEMO Indian Ocean Regional (IND-NEMO)',
@@ -39,9 +41,22 @@ const PIPELINE_STAGES = [
 ];
 
 export const DataManagerModal: React.FC<DataManagerModalProps> = ({ onClose }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useModalA11y(true, onClose, modalRef);
+
   return (
     <div className="dm-overlay" onClick={onClose}>
-      <div className="dm-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={modalRef}
+        className="dm-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Data Manager and Metadata Inspector"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
+
         <div className="dm-header">
           <div className="dm-title-group">
             <span className="dm-badge">🗂️ DATA MANAGER & METADATA INSPECTOR</span>

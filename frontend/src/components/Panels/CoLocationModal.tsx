@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import useModalA11y from '../../hooks/useModalA11y';
 import { getCoLocationResults, type CoLocationMatch } from '../../services/api';
 import './CoLocationModal.css';
 
@@ -11,6 +12,7 @@ interface CoLocationModalProps {
   onClose: () => void;
   onJumpToSensor: (lat: number, lon: number) => void;
 }
+
 
 export const CoLocationModal: React.FC<CoLocationModalProps> = ({
   isOpen,
@@ -52,12 +54,24 @@ export const CoLocationModal: React.FC<CoLocationModalProps> = ({
     }
   }, [isOpen, probedLat, probedLon]);
 
+  const modalRef = useRef<HTMLDivElement>(null);
+  useModalA11y(isOpen, onClose, modalRef);
+
   if (!isOpen) return null;
 
   return (
     <div className="coloc-overlay" onClick={onClose}>
-      <div className="coloc-modal" onClick={e => e.stopPropagation()}>
+      <div
+        ref={modalRef}
+        className="coloc-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Spatial-Temporal Co-Location Engine"
+        tabIndex={-1}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="coloc-header">
+
           <div className="coloc-title-group">
             <span className="coloc-badge">🎯 CO-LOCATION ENGINE</span>
             <span className="coloc-sub">Spatial-Temporal Model–Observation Matching</span>

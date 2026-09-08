@@ -3,7 +3,8 @@
  * Comprehensive scientific data provenance and methodology dialog.
  * Answers INCOIS and MoES scientific audit criteria with complete transparency.
  */
-import React from 'react';
+import React, { useRef } from 'react';
+import useModalA11y from '../../hooks/useModalA11y';
 import './DataProvenanceModal.css';
 
 interface DataProvenanceModalProps {
@@ -12,11 +13,24 @@ interface DataProvenanceModalProps {
 }
 
 export const DataProvenanceModal: React.FC<DataProvenanceModalProps> = ({ isOpen, onClose }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useModalA11y(isOpen, onClose, cardRef);
+
   if (!isOpen) return null;
 
   return (
     <div className="provenance-overlay" onClick={onClose}>
-      <div className="provenance-card" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={cardRef}
+        className="provenance-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Scientific Data Provenance and Methodology"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
+
         <div className="provenance-header">
           <div className="header-title-block">
             <span className="provenance-tag">SCIENTIFIC PROVENANCE & METHODOLOGY</span>

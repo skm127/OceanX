@@ -3,10 +3,12 @@
  * PRD Section 15: Ocean Region Dossier.
  * Contextual investigation panel triggered by right-clicking anywhere on the ocean surface.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import useModalA11y from '../../hooks/useModalA11y';
 import { getOceanDossier } from '../../services/api';
 import type { OceanDossierResponse } from '../../types';
 import './OceanDossierModal.css';
+
 
 interface OceanDossierModalProps {
   coordinate: { lat: number; lon: number };
@@ -34,6 +36,9 @@ export const OceanDossierModal: React.FC<OceanDossierModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [dossier, setDossier] = useState<OceanDossierResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useModalA11y(true, onClose, cardRef);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,8 +66,17 @@ export const OceanDossierModal: React.FC<OceanDossierModalProps> = ({
 
   return (
     <div className="ocean-dossier-overlay" onClick={onClose}>
-      <div className="ocean-dossier-card" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={cardRef}
+        className="ocean-dossier-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ocean Region Dossier"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
+
         <div className="dossier-header">
           <div className="dossier-badge-row">
             <span className="dossier-type-tag">🛰 IN-SITU & MODEL FUSION</span>

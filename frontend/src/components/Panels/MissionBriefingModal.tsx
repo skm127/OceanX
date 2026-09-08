@@ -2,6 +2,8 @@
  * MissionBriefingModal — Executive Overview & Guided Explainer.
  * Makes the entire platform immediately understandable to anyone (judges, evaluators, oceanographers).
  */
+import { useRef } from 'react';
+import useModalA11y from '../../hooks/useModalA11y';
 import './MissionBriefingModal.css';
 
 interface MissionBriefingModalProps {
@@ -15,11 +17,24 @@ export default function MissionBriefingModal({
   onClose,
   onJumpToAnomaly,
 }: MissionBriefingModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useModalA11y(isOpen, onClose, modalRef);
+
   if (!isOpen) return null;
 
   return (
     <div className="briefing-overlay" onClick={onClose}>
-      <div className="briefing-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={modalRef}
+        className="briefing-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mission Briefing: Model vs Reality Ocean Intelligence"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
+
         {/* Header */}
         <div className="briefing-header">
           <div className="briefing-header-left">
