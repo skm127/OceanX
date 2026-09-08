@@ -1,12 +1,12 @@
 """API endpoints for ocean model data."""
 from fastapi import APIRouter, Request, Response, HTTPException, Query
 import numpy as np
-from app.models.schemas import Variable
+from app.models.schemas import Variable, DatasetInfo
 
 router = APIRouter(prefix="/api/model", tags=["Model Data"])
 
 
-@router.get("/info")
+@router.get("/info", response_model=DatasetInfo)
 def get_model_info(request: Request):
     """Get information about the loaded model dataset."""
     nc_service = request.app.state.nc_service

@@ -6,7 +6,7 @@ These match the internal data model specification:
 - ComparisonResult: model vs observation deviation at a depth level
 """
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import datetime
 from enum import Enum
 
@@ -17,6 +17,7 @@ class PlatformType(str, Enum):
     CTD = "ctd"
     BGC = "bgc"
     MOORING = "mooring"
+    MOORED_BUOY = "moored_buoy"
 
 
 class Variable(str, Enum):
@@ -29,12 +30,12 @@ class Variable(str, Enum):
 class Observation(BaseModel):
     """A single observation measurement at a specific depth."""
     id: str
-    platform_type: PlatformType
+    platform_type: Union[PlatformType, str]
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=360)
-    timestamp: datetime
+    timestamp: Union[datetime, str]
     depth: float = Field(ge=0, description="Depth in meters")
-    variable: Variable
+    variable: Union[Variable, str]
     value: float
     unit: str
     source: str
@@ -43,8 +44,8 @@ class Observation(BaseModel):
 class ModelFieldPoint(BaseModel):
     """A single model grid point value."""
     dataset_id: str
-    variable: Variable
-    timestamp: datetime
+    variable: Union[Variable, str]
+    timestamp: Union[datetime, str]
     latitude: float
     longitude: float
     depth: float
@@ -65,11 +66,11 @@ class ComparisonResult(BaseModel):
 class ComparisonResponse(BaseModel):
     """Full comparison response for an observation profile."""
     observation_id: str
-    platform_type: PlatformType
+    platform_type: Union[PlatformType, str]
     latitude: float
     longitude: float
-    timestamp: datetime
-    variable: Variable
+    timestamp: Union[datetime, str]
+    variable: Union[Variable, str]
     comparisons: List[ComparisonResult]
     anomaly_detected: bool = False
     anomaly_threshold: float = 1.0
@@ -78,14 +79,14 @@ class ComparisonResponse(BaseModel):
 class ObservationProfile(BaseModel):
     """A complete observation profile (all depths for one float/cast)."""
     id: str
-    platform_type: PlatformType
+    platform_type: Union[PlatformType, str]
     latitude: float
     longitude: float
-    timestamp: datetime
+    timestamp: Union[datetime, str]
     depths: List[float]
     temperatures: Optional[List[Optional[float]]] = None
     salinities: Optional[List[Optional[float]]] = None
-    source: str
+    source: Optional[str] = "Argo GDAC"
 
 
 class ModelSliceMetadata(BaseModel):
@@ -105,7 +106,7 @@ class ModelSliceMetadata(BaseModel):
 
 class DatasetInfo(BaseModel):
     """Information about a loaded dataset."""
-    filename: str
+    filename: Optional[str] = None
     variables: List[str]
     dimensions: dict
     lat_range: List[float]

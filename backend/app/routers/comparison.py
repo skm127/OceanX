@@ -6,11 +6,12 @@ predictions diverge from real observations.
 from fastapi import APIRouter, Request, HTTPException, Query
 from typing import Optional
 import numpy as np
+from app.models.schemas import ComparisonResponse
 
 router = APIRouter(prefix="/api/compare", tags=["Comparison"])
 
 
-@router.get("/profile/{profile_id}")
+@router.get("/profile/{profile_id}", response_model=ComparisonResponse)
 def compare_profile(
     profile_id: str,
     request: Request,

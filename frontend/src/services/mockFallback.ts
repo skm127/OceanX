@@ -523,3 +523,75 @@ export function getMockDetectAnomaly(
       : [],
   };
 }
+
+export function getMockAllObservations(): {
+  argo: any[];
+  moored_buoys: any[];
+  gliders: any[];
+  total_platforms: number;
+} {
+  const argo = getMockArgoProfiles().profiles;
+  const moored_buoys = [
+    { id: 'buoy_BD08', platform_id: 'BD08', platform_type: 'moored_buoy', name: 'INCOIS OMNI BD08', latitude: 18.2, longitude: 89.7, basin: 'Bay of Bengal' },
+    { id: 'buoy_BD11', platform_id: 'BD11', platform_type: 'moored_buoy', name: 'INCOIS OMNI BD11', latitude: 13.5, longitude: 84.2, basin: 'Bay of Bengal' },
+    { id: 'buoy_AD02', platform_id: 'AD02', platform_type: 'moored_buoy', name: 'INCOIS OMNI AD02', latitude: 15.0, longitude: 69.0, basin: 'Arabian Sea' },
+    { id: 'buoy_AD07', platform_id: 'AD07', platform_type: 'moored_buoy', name: 'INCOIS OMNI AD07', latitude: 10.5, longitude: 72.5, basin: 'Arabian Sea' },
+    { id: 'buoy_RAMA_EQ', platform_id: 'RAMA_EQ', platform_type: 'moored_buoy', name: 'MoES RAMA 80.5E', latitude: 0.0, longitude: 80.5, basin: 'Equatorial Indian Ocean' },
+  ];
+  const gliders = [
+    { id: 'glider_bob_01', platform_id: 'GLIDER_BOB_01', platform_type: 'glider', name: 'INCOIS Coastal Glider', latitude: 16.4, longitude: 82.8, basin: 'Bay of Bengal' }
+  ];
+  return {
+    argo,
+    moored_buoys,
+    gliders,
+    total_platforms: argo.length + moored_buoys.length + gliders.length,
+  };
+}
+
+export function getMockCoLocationResults(lat: number, lon: number): any[] {
+  return [
+    {
+      sensor_id: '2902345',
+      sensor_type: 'argo',
+      name: 'Argo Float #2902345',
+      latitude: lat + 0.3,
+      longitude: lon - 0.5,
+      distance_km: 62.4,
+      time_offset_hours: 2,
+      model_value: 28.5,
+      observed_value: 31.7,
+      rmse: 0.847,
+      bias: 3.22,
+      match_score: 87.8,
+    },
+    {
+      sensor_id: 'BD08',
+      sensor_type: 'moored_buoy',
+      name: 'INCOIS OMNI BD08',
+      latitude: lat - 0.8,
+      longitude: lon + 0.6,
+      distance_km: 114.2,
+      time_offset_hours: 0,
+      model_value: 29.1,
+      observed_value: 29.4,
+      rmse: 0.285,
+      bias: 0.30,
+      match_score: 82.4,
+    },
+    {
+      sensor_id: 'GLIDER_BOB_01',
+      sensor_type: 'glider',
+      name: 'INCOIS Coastal Glider',
+      latitude: lat + 1.2,
+      longitude: lon - 1.1,
+      distance_km: 178.5,
+      time_offset_hours: 5,
+      model_value: 27.8,
+      observed_value: 28.1,
+      rmse: 0.412,
+      bias: 0.30,
+      match_score: 68.1,
+    }
+  ];
+}

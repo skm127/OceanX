@@ -55,7 +55,12 @@ def detect_profile_anomaly(
             time_index=time_index,
         )
         import numpy as np
-        m_interp = np.interp(depths, m_depths, m_vals).tolist()
+        valid = [(d, float(v)) for d, v in zip(m_depths, m_vals) if v is not None and not np.isnan(v)]
+        if valid:
+            vm_depths, vm_vals = zip(*valid)
+            m_interp = np.interp(depths, vm_depths, vm_vals).tolist()
+        else:
+            m_interp = [float(v) if v is not None else 0.0 for v in obs_vals]
 
         return anomaly_service.analyze_profile(
             profile_id=profile_id,

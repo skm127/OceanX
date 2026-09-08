@@ -1,6 +1,7 @@
 """API endpoints for observation data (Argo floats, etc.)."""
 from fastapi import APIRouter, Request, HTTPException, Query
 from typing import Optional
+from app.models.schemas import ObservationProfile
 
 router = APIRouter(prefix="/api/observations", tags=["Observations"])
 
@@ -27,7 +28,7 @@ def get_argo_profiles(
     return {"profiles": profiles, "count": len(profiles)}
 
 
-@router.get("/argo/{profile_id}")
+@router.get("/argo/{profile_id}", response_model=ObservationProfile)
 def get_argo_profile(profile_id: str, request: Request):
     """Get a specific Argo profile with full depth data."""
     argo_service = request.app.state.argo_service

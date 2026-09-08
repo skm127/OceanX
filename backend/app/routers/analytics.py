@@ -8,7 +8,8 @@ Provides advanced spatial computations:
 """
 from fastapi import APIRouter, Request, HTTPException, Query
 from pydantic import BaseModel, Field
-from typing import Literal, Optional
+from typing import Literal, Optional, Any
+from datetime import datetime, timezone
 import numpy as np
 import math
 
@@ -308,7 +309,7 @@ def get_ocean_dossier(
                         "distance_km": round(d_km, 1),
                         "latitude": f["latitude"],
                         "longitude": f["longitude"],
-                        "last_reported": f.get("date", "2026-08-10")
+                        "last_reported": f.get("timestamp", "2024-08-01T12:00:00")
                     })
 
         nearby_floats.sort(key=lambda x: x["distance_km"])
@@ -466,6 +467,107 @@ def run_ai_grounded_analysis(payload: AiQueryRequest, request: Request):
     }
 
 
+def _evaluate_candidate(
+    platform: dict,
+    platform_type: str,
+    target_lat: float,
+    target_lon: float,
+    radius_km: float,
+    time_window_hours: float,
+    query_time: datetime,
+    variable: str,
+    time_index: int,
+    nc_service: Any,
+) -> Optional[dict]:
+    plat_lat = platform.get("latitude")
+    plat_lon = platform.get("longitude")
+    if plat_lat is None or plat_lon is None:
+        return None
+
+    dist = haversine_km(target_lat, target_lon, plat_lat, plat_lon)
+    if dist > radius_km:
+        return None
+
+    # Calculate temporal offset
+    raw_ts = platform.get("timestamp")
+    time_offset_hours = 0.0
+    if raw_ts:
+        try:
+            if isinstance(raw_ts, str):
+                ts_clean = raw_ts.replace("Z", "+00:00")
+                obs_time = datetime.fromisoformat(ts_clean)
+            elif isinstance(raw_ts, datetime):
+                obs_time = raw_ts
+            else:
+                obs_time = query_time
+            if obs_time.tzinfo is None:
+                obs_time = obs_time.replace(tzinfo=timezone.utc)
+            time_offset_hours = round(abs((obs_time - query_time).total_seconds()) / 3600.0, 1)
+        except Exception:
+            time_offset_hours = 0.0
+
+    if time_offset_hours > time_window_hours:
+        return None
+
+    obs_depths = platform.get("depths", [])
+    obs_vals = platform.get("temperatures") if variable == "thetao" else platform.get("salinities")
+    if not obs_depths or not obs_vals:
+        return None
+
+    # Surface or shallowest valid observation
+    valid_obs = [float(v) for v in obs_vals if v is not None and not np.isnan(v)]
+    if not valid_obs:
+        return None
+    observed_value = valid_obs[0]
+
+    rmse = 0.0
+    mean_bias = 0.0
+    model_value = None
+
+    try:
+        m_depths, m_vals = nc_service.get_depth_profile(variable=variable, lat=plat_lat, lon=plat_lon, time_index=time_index)
+        valid_m = [(d, v) for d, v in zip(m_depths, m_vals) if v is not None and not np.isnan(v)]
+        if valid_m:
+            vm_depths, vm_vals = zip(*valid_m)
+            m_interp = np.interp(obs_depths, vm_depths, vm_vals)
+            model_value = round(float(m_interp[0]), 2)
+            diffs = [float(o) - float(m) for o, m in zip(obs_vals, m_interp) if o is not None and not np.isnan(o)]
+            if diffs:
+                rmse = round(float(np.sqrt(np.mean(np.square(diffs)))), 3)
+                mean_bias = round(float(np.mean(diffs)), 3)
+    except Exception:
+        pass
+
+    match_score = round(max(0.0, 100.0 - (dist / radius_km * 45.0) - (min(time_offset_hours, time_window_hours) / time_window_hours * 20.0) - (rmse * 12.0)), 1)
+    sensor_id = str(platform.get("platform_id") or platform.get("id"))
+    name = platform.get("name") or f"{platform_type.capitalize()} #{sensor_id}"
+
+    return {
+        "sensor_id": sensor_id,
+        "platform_id": platform.get("platform_id"),
+        "profile_id": platform.get("id"),
+        "sensor_type": platform_type,
+        "name": name,
+        "latitude": plat_lat,
+        "longitude": plat_lon,
+        "timestamp": platform.get("timestamp"),
+        "distance_km": round(dist, 1),
+        "time_offset_hours": time_offset_hours,
+        "temporal_delta_hours": time_offset_hours,
+        "model_value": model_value,
+        "observed_value": round(float(observed_value), 2) if observed_value is not None else None,
+        "rmse": rmse,
+        "bias": mean_bias,
+        "mean_bias": mean_bias,
+        "qc_passed": bool(platform.get("qc_flags", [1])[0] == 1 if "qc_flags" in platform else True),
+        "n_soundings": len(obs_depths),
+        "max_depth_m": max(obs_depths) if obs_depths else 0.0,
+        "match_score": match_score,
+        "surface_meteorology": platform.get("surface_meteorology"),
+        "waypoints": platform.get("waypoints")
+    }
+
+
 @router.get("/colocate")
 def colocate_observations(
     request: Request,
@@ -473,7 +575,8 @@ def colocate_observations(
     lon: float = Query(..., ge=60.0, le=100.0, description="Target longitude"),
     radius_km: float = Query(default=250.0, ge=1.0, le=1_000.0, description="Search radius in kilometers"),
     time_window_hours: float = Query(default=48.0, ge=1.0, le=720.0, description="Time window in hours"),
-    variable: Literal["thetao", "so"] = Query(default="thetao", description="Variable to compare")
+    variable: Literal["thetao", "so"] = Query(default="thetao", description="Variable to compare"),
+    time_index: int = Query(default=0, ge=0, description="Time step index")
 ):
     """
     SAGAR-VIEW Spatial-Temporal Co-Location Engine (Blueprint §8.2).
@@ -487,125 +590,26 @@ def colocate_observations(
     if not nc_service.is_loaded or not argo_service.is_loaded:
         raise HTTPException(status_code=503, detail="Ocean data services not fully loaded")
 
-    def haversine(lat1, lon1, lat2, lon2):
-        r = 6371.0
-        p1, p2 = np.radians(lat1), np.radians(lat2)
-        dp = np.radians(lat2 - lat1)
-        dl = np.radians(lon2 - lon1)
-        a = np.sin(dp / 2.0)**2 + np.cos(p1) * np.cos(p2) * np.sin(dl / 2.0)**2
-        return float(2.0 * r * np.arcsin(np.clip(np.sqrt(a), 0.0, 1.0)))
-
+    query_time = datetime(2024, 8, 8, 12, 0, 0, tzinfo=timezone.utc)
     candidates = []
 
     # 1. Evaluate Argo profiles
-    for p in argo_service._profiles:
-        plat_lat = p["latitude"]
-        plat_lon = p["longitude"]
-        dist = haversine(lat, lon, plat_lat, plat_lon)
-        if dist <= radius_km:
-            try:
-                m_depths, m_vals = nc_service.get_depth_profile(variable=variable, lat=plat_lat, lon=plat_lon, time_index=0)
-                obs_depths = p["depths"]
-                obs_vals = p["temperatures"] if variable == "thetao" else p.get("salinities")
-                m_interp = np.interp(obs_depths, m_depths, [v if v is not None else 25.0 for v in m_vals])
-                diffs = [abs(float(o) - float(m)) for o, m in zip(obs_vals, m_interp) if o is not None]
-                rmse = float(np.sqrt(np.mean(np.square(diffs)))) if diffs else 0.0
-                mean_bias = float(np.mean([float(o) - float(m) for o, m in zip(obs_vals, m_interp) if o is not None])) if diffs else 0.0
-            except Exception:
-                rmse = 0.0
-                mean_bias = 0.0
-
-            candidates.append({
-                "platform_id": p["platform_id"],
-                "profile_id": p["id"],
-                "platform_type": "argo",
-                "name": f"Argo Float #{p['platform_id']}",
-                "latitude": plat_lat,
-                "longitude": plat_lon,
-                "timestamp": p["timestamp"],
-                "distance_km": round(dist, 1),
-                "temporal_delta_hours": 12.0,
-                "rmse": round(rmse, 3),
-                "mean_bias": round(mean_bias, 3),
-                "qc_passed": True,
-                "n_soundings": len(p["depths"]),
-                "max_depth_m": max(p["depths"]) if p["depths"] else 0.0,
-                "match_score": round(max(0.0, 100.0 - (dist / radius_km * 45.0) - (rmse * 12.0)), 1)
-            })
+    for p in argo_service.get_all_profiles():
+        c = _evaluate_candidate(p, "argo", lat, lon, radius_km, time_window_hours, query_time, variable, time_index, nc_service)
+        if c:
+            candidates.append(c)
 
     # 2. Evaluate Moored Buoys
-    for b in argo_service._moored_buoys:
-        plat_lat = b["latitude"]
-        plat_lon = b["longitude"]
-        dist = haversine(lat, lon, plat_lat, plat_lon)
-        if dist <= radius_km:
-            try:
-                m_depths, m_vals = nc_service.get_depth_profile(variable=variable, lat=plat_lat, lon=plat_lon, time_index=0)
-                obs_depths = b["depths"]
-                obs_vals = b["temperatures"] if variable == "thetao" else b.get("salinities")
-                m_interp = np.interp(obs_depths, m_depths, [v if v is not None else 25.0 for v in m_vals])
-                diffs = [abs(float(o) - float(m)) for o, m in zip(obs_vals, m_interp) if o is not None]
-                rmse = float(np.sqrt(np.mean(np.square(diffs)))) if diffs else 0.0
-                mean_bias = float(np.mean([float(o) - float(m) for o, m in zip(obs_vals, m_interp) if o is not None])) if diffs else 0.0
-            except Exception:
-                rmse = 0.0
-                mean_bias = 0.0
-
-            candidates.append({
-                "platform_id": b["platform_id"],
-                "profile_id": b["id"],
-                "platform_type": "moored_buoy",
-                "name": b["name"],
-                "latitude": plat_lat,
-                "longitude": plat_lon,
-                "timestamp": b["timestamp"],
-                "distance_km": round(dist, 1),
-                "temporal_delta_hours": 0.0,
-                "rmse": round(rmse, 3),
-                "mean_bias": round(mean_bias, 3),
-                "qc_passed": True,
-                "n_soundings": len(b["depths"]),
-                "max_depth_m": max(b["depths"]) if b["depths"] else 0.0,
-                "match_score": round(max(0.0, 100.0 - (dist / radius_km * 45.0) - (rmse * 12.0)), 1),
-                "surface_meteorology": b.get("surface_meteorology")
-            })
+    for b in argo_service.get_moored_buoys():
+        c = _evaluate_candidate(b, "moored_buoy", lat, lon, radius_km, time_window_hours, query_time, variable, time_index, nc_service)
+        if c:
+            candidates.append(c)
 
     # 3. Evaluate Gliders
-    for g in argo_service._gliders:
-        plat_lat = g["latitude"]
-        plat_lon = g["longitude"]
-        dist = haversine(lat, lon, plat_lat, plat_lon)
-        if dist <= radius_km:
-            try:
-                m_depths, m_vals = nc_service.get_depth_profile(variable=variable, lat=plat_lat, lon=plat_lon, time_index=0)
-                obs_depths = g["depths"]
-                obs_vals = g["temperatures"] if variable == "thetao" else g.get("salinities")
-                m_interp = np.interp(obs_depths, m_depths, [v if v is not None else 25.0 for v in m_vals])
-                diffs = [abs(float(o) - float(m)) for o, m in zip(obs_vals, m_interp) if o is not None]
-                rmse = float(np.sqrt(np.mean(np.square(diffs)))) if diffs else 0.0
-                mean_bias = float(np.mean([float(o) - float(m) for o, m in zip(obs_vals, m_interp) if o is not None])) if diffs else 0.0
-            except Exception:
-                rmse = 0.0
-                mean_bias = 0.0
-
-            candidates.append({
-                "platform_id": g["platform_id"],
-                "profile_id": g["id"],
-                "platform_type": "glider",
-                "name": g["name"],
-                "latitude": plat_lat,
-                "longitude": plat_lon,
-                "timestamp": g["timestamp"],
-                "distance_km": round(dist, 1),
-                "temporal_delta_hours": 6.0,
-                "rmse": round(rmse, 3),
-                "mean_bias": round(mean_bias, 3),
-                "qc_passed": True,
-                "n_soundings": len(g["depths"]),
-                "max_depth_m": max(g["depths"]) if g["depths"] else 0.0,
-                "match_score": round(max(0.0, 100.0 - (dist / radius_km * 45.0) - (rmse * 12.0)), 1),
-                "waypoints": g.get("waypoints")
-            })
+    for g in argo_service.get_gliders():
+        c = _evaluate_candidate(g, "glider", lat, lon, radius_km, time_window_hours, query_time, variable, time_index, nc_service)
+        if c:
+            candidates.append(c)
 
     candidates.sort(key=lambda x: x["match_score"], reverse=True)
 
@@ -615,8 +619,11 @@ def colocate_observations(
             "longitude": lon,
             "radius_km": radius_km,
             "time_window_hours": time_window_hours,
-            "variable": variable
+            "variable": variable,
+            "time_index": time_index
         },
         "total_matches": len(candidates),
+        "total_candidates": len(candidates),
+        "matches": candidates,
         "candidates": candidates
     }

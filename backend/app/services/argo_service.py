@@ -241,14 +241,8 @@ class ArgoService:
                 temp_list = temp[valid_mask].tolist() if temp is not None else None
                 psal_list = psal[valid_mask].tolist() if psal is not None else None
 
-                # Generate standard WMO Quality Control flags (1 = Good, 2 = Probably Good, 3 = Correctable)
-                qc_flags = []
-                for d in depth_list:
-                    # In anomaly float 2902345, the subsurface thermal anomaly layer is between 80m and 160m
-                    if "2902345" in str(platform_id) and 80.0 <= d <= 160.0:
-                        qc_flags.append(2)  # Probably good / Significant divergence from reanalysis
-                    else:
-                        qc_flags.append(1)  # WMO QC 1: Validated Good
+                # Standard WMO Quality Control flag (1 = Good validated data)
+                qc_flags = [1 for _ in depth_list]
 
                 profile = {
                     'id': f"argo_{platform_id}_{i}",
@@ -283,6 +277,14 @@ class ArgoService:
             }
             for p in self._profiles
         ]
+
+    def get_all_profiles(self) -> List[Dict[str, Any]]:
+        """Return full records for all parsed Argo profiles."""
+        return self._profiles
+
+    def get_all_platforms(self) -> List[Dict[str, Any]]:
+        """Return unified full records for all platforms (Argo + buoys + gliders)."""
+        return self._profiles + self._moored_buoys + self._gliders
 
     def get_moored_buoys(self) -> List[Dict[str, Any]]:
         """Return all INCOIS moored buoys."""

@@ -1,19 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { getCoLocationResults, type CoLocationMatch } from '../../services/api';
 import './CoLocationModal.css';
 
-interface CoLocationResult {
-  sensor_id: string;
-  sensor_type: string;
-  latitude: number;
-  longitude: number;
-  distance_km: number;
-  time_offset_hours: number;
-  model_value: number | null;
-  observed_value: number | null;
-  rmse: number | null;
-  bias: number | null;
-  match_score: number;
-}
+type CoLocationResult = CoLocationMatch;
 
 interface CoLocationModalProps {
   isOpen: boolean;
@@ -40,21 +29,20 @@ export const CoLocationModal: React.FC<CoLocationModalProps> = ({
     setLoading(true);
     setSearched(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(
-        `${API_BASE}/api/analytics/colocate?lat=${probedLat}&lon=${probedLon}&radius_km=${radius}&time_window_hours=${timeWindow}&variable=thetao&time_index=0`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setResults(data.matches || []);
-      } else {
-        // Mock fallback
-        setResults(getMockCoLocationResults(probedLat, probedLon));
-      }
+      const data = await getCoLocationResults({
+        lat: probedLat,
+        lon: probedLon,
+        radius_km: radius,
+        time_window_hours: timeWindow,
+        variable: 'thetao',
+        time_index: 0,
+      });
+      setResults(data.matches || []);
     } catch {
       setResults(getMockCoLocationResults(probedLat, probedLon));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {

@@ -11,7 +11,7 @@
  * - Global Search (⌘K / Ctrl+K — PRD §24)
  * - Grounded Ocean Analyst AI (PRD §21-23)
  */
-import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import * as THREE from 'three';
 import Globe from './components/Globe/Globe';
 import ControlBar from './components/Controls/ControlBar';
@@ -29,7 +29,8 @@ import ProductModeSelector, { type ProductMode } from './components/Controls/Pro
 import { useOceanData } from './hooks/useOceanData';
 import { useCurrentVectors } from './hooks/useCurrentVectors';
 import { useArgoData } from './hooks/useArgoData';
-import { getModelProfile, getArgoProfile } from './services/api';
+import { getModelProfile, getArgoProfile, getAnomalySummary, getAllObservations } from './services/api';
+import type { AnomalyFleetSummary } from './types';
 import {
   getSectorCameraPosition,
   latLonToVector3,
@@ -134,6 +135,28 @@ function App() {
   const [showVolumetricBlock, setShowVolumetricBlock] = useState(true);
   const [verticalExaggeration, setVerticalExaggeration] = useState(1.0);
 
+  // Dynamic Fleet Anomaly Intelligence & Sensor Network Counters
+  const [anomalySummary, setAnomalySummary] = useState<AnomalyFleetSummary | null>(null);
+  const [sensorNetworkCount, setSensorNetworkCount] = useState<number>(argoProfiles.length + 6);
+
+  useEffect(() => {
+    getAnomalySummary()
+      .then((res) => {
+        if (res) setAnomalySummary(res);
+      })
+      .catch(() => {});
+  }, [timeIndex]);
+
+  useEffect(() => {
+    getAllObservations()
+      .then((res) => {
+        if (res && typeof res.total_platforms === 'number') {
+          setSensorNetworkCount(res.total_platforms);
+        }
+      })
+      .catch(() => {});
+  }, [argoProfiles.length]);
+
   // Live UTC Clock
   const [utcTime, setUtcTime] = useState('');
   useEffect(() => {
@@ -166,12 +189,21 @@ function App() {
     setTargetCameraPos(getSectorCameraPosition(sectorId));
 
     if (sectorId === 'anomaly_target') {
-      const anom = argoProfiles.find((p) => p.platform_id === '2902345');
-      if (anom) {
-        setSelectedProfileId(anom.id);
-        setProbedCoord({ lat: anom.latitude, lon: anom.longitude });
+      const topFloat = anomalySummary?.highest_anomaly_float;
+      const target = topFloat
+        ? argoProfiles.find((p) => p.id === topFloat.id || p.platform_id === topFloat.platform_id) || {
+            id: topFloat.id,
+            platform_id: topFloat.platform_id,
+            latitude: topFloat.latitude,
+            longitude: topFloat.longitude,
+          }
+        : argoProfiles[0];
+
+      if (target) {
+        setSelectedProfileId(target.id);
+        setProbedCoord({ lat: target.latitude, lon: target.longitude });
         // Fetch profile data for HUD
-        loadProfileForLocation(anom.latitude, anom.longitude, anom.id);
+        loadProfileForLocation(target.latitude, target.longitude, target.id);
       }
     }
   };
@@ -291,6 +323,10 @@ function App() {
     setTargetCameraPos(latLonToVector3(lat, lon, altitude ?? 4.6));
   };
 
+  // Keep fresh references for keyboard handlers to prevent stale closures
+  const handleSelectSectorRef = useRef(handleSelectSector);
+  handleSelectSectorRef.current = handleSelectSector;
+
   // C2 Keyboard Command Hotkeys
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -318,15 +354,15 @@ function App() {
         setBriefingOpen(false);
         setCoLocationOpen(false);
       } else if (e.key === '1') {
-        handleSelectSector('all_india');
+        handleSelectSectorRef.current('all_india');
       } else if (e.key === '2') {
-        handleSelectSector('arabian_sea');
+        handleSelectSectorRef.current('arabian_sea');
       } else if (e.key === '3') {
-        handleSelectSector('bay_of_bengal');
+        handleSelectSectorRef.current('bay_of_bengal');
       } else if (e.key === '4') {
-        handleSelectSector('anomaly_target');
+        handleSelectSectorRef.current('anomaly_target');
       } else if (e.key === '5') {
-        handleSelectSector('equatorial');
+        handleSelectSectorRef.current('equatorial');
       } else if (e.key === 'b' || e.key === 'B') {
         setBriefingOpen((prev) => !prev);
       } else if (e.key === 'c' || e.key === 'C') {
@@ -354,7 +390,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [argoProfiles]);
+  }, []);
 
   const unit = variable === 'thetao' ? '°C' : variable === 'so' ? 'PSU' : 'm/s';
 
@@ -397,13 +433,20 @@ function App() {
           <span className="utc-clock">{utcTime}</span>
 
           {/* Significant Anomaly Alert Badge */}
-          <button
-            className="c2-badge anomaly-alert-badge anomaly-clickable"
-            onClick={() => handleSelectSector('anomaly_target')}
-            title="Inspect Subsurface Thermal Anomaly #2902345 (Key: 4)"
-          >
-            ⚠ 1 ANOMALY
-          </button>
+          {(() => {
+            const anomCount = anomalySummary
+              ? anomalySummary.critical_count + anomalySummary.warning_count
+              : 0;
+            return (
+              <button
+                className="c2-badge anomaly-alert-badge anomaly-clickable"
+                onClick={() => handleSelectSector('anomaly_target')}
+                title={`Inspect Subsurface Thermal Anomalies (${anomCount} detected, Key: 4)`}
+              >
+                ⚠ {anomCount} {anomCount === 1 ? 'ANOMALY' : 'ANOMALIES'}
+              </button>
+            );
+          })()}
 
           {/* Data Provenance & Methodology */}
           <button
@@ -463,7 +506,7 @@ function App() {
             onClick={() => setFleetOpen(!fleetOpen)}
             title="Inspect Active In-Situ Sensor Network (Key: F)"
           >
-            📡 {argoProfiles.length + 6} SENSORS
+            📡 {sensorNetworkCount} SENSORS
           </button>
 
           {/* Scientific Briefing */}
