@@ -65,6 +65,7 @@ const OperationalSituationRoom = lazy(() => import('./components/Panels/Operatio
 const LearnStoryJourney = lazy(() => import('./components/Panels/LearnStoryJourney'));
 const DataManagerModal = lazy(() => import('./components/Panels/DataManagerModal'));
 const CoLocationModal = lazy(() => import('./components/Panels/CoLocationModal'));
+const SoundingStudioPage = lazy(() => import('./components/Panels/SoundingStudioPage'));
 
 function App() {
   const {
@@ -572,6 +573,13 @@ function App() {
                     <span className="item-desc">Model–observation spatial matching</span>
                   </div>
                 </button>
+                <button className="tools-menu-item" onClick={() => setProductMode('sounding')}>
+                  <span className="item-icon">📊</span>
+                  <div className="item-text">
+                    <span className="item-title">Sounding Studio</span>
+                    <span className="item-desc">Dedicated observation workstation</span>
+                  </div>
+                </button>
               </div>
             )}
           </div>
@@ -960,7 +968,7 @@ function App() {
         )}
 
         {/* Core Differentiator: Model vs Reality Comparison Drawer */}
-        {selectedProfileId && (
+        {selectedProfileId && productMode !== 'sounding' && (
           <Suspense fallback={null}>
             <ComparisonPanel
               profileId={selectedProfileId}
@@ -968,6 +976,22 @@ function App() {
               timeIndex={timeIndex}
               explainMode={explainMode}
               onClose={() => setSelectedProfileId(null)}
+              onOpenFullPage={() => setProductMode('sounding')}
+            />
+          </Suspense>
+        )}
+
+        {/* SAGAR-VIEW Dedicated In-Situ Sounding Studio Workstation */}
+        {productMode === 'sounding' && (
+          <Suspense fallback={null}>
+            <SoundingStudioPage
+              initialProfileId={selectedProfileId}
+              profiles={argoProfiles}
+              variable={variable}
+              timeIndex={timeIndex}
+              onSelectProfile={(id) => setSelectedProfileId(id)}
+              onVariableChange={setVariable}
+              onClose={() => setProductMode('research')}
             />
           </Suspense>
         )}

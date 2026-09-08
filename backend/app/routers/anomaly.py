@@ -4,11 +4,14 @@ Provides statistical divergence and ML-based anomaly scoring for in-situ observa
 """
 from fastapi import APIRouter, Request, HTTPException, Query
 from typing import Optional
+import numpy as np
+
+from ..models.schemas import AnomalyFleetSummary, AnomalyAnalysisResponse
 
 router = APIRouter(prefix="/api/anomaly", tags=["Anomaly Intelligence"])
 
 
-@router.get("/summary")
+@router.get("/summary", response_model=AnomalyFleetSummary)
 def get_anomaly_summary(request: Request):
     """Get anomaly intelligence summary across all active in-situ floats in the region."""
     anomaly_service = request.app.state.anomaly_service
@@ -24,7 +27,7 @@ def get_anomaly_summary(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/detect/{profile_id}")
+@router.get("/detect/{profile_id}", response_model=AnomalyAnalysisResponse)
 def detect_profile_anomaly(
     profile_id: str,
     request: Request,
@@ -54,11 +57,12 @@ def detect_profile_anomaly(
             lon=profile["longitude"],
             time_index=time_index,
         )
-        import numpy as np
+        # Filter masked/NaN model values BEFORE interpolation — NaN model values
+        # must never be treated as real deltas by the Isolation Forest features.
         valid = [(d, float(v)) for d, v in zip(m_depths, m_vals) if v is not None and not np.isnan(v)]
         if valid:
             vm_depths, vm_vals = zip(*valid)
-            m_interp = np.interp(depths, vm_depths, vm_vals).tolist()
+            m_interp = np.interp(depths, vm_depths, vm_vals, left=np.nan, right=np.nan).tolist()
         else:
             m_interp = [float(v) if v is not None else 0.0 for v in obs_vals]
 

@@ -114,6 +114,9 @@ class DatasetInfo(BaseModel):
     depth_levels: List[float]
     time_steps: int
     is_synthetic: bool = True
+    # Real time coverage of the dataset (ISO strings) — None when undated
+    dataset_time_range: Optional[List[Optional[str]]] = None
+    source_provenance: Optional[str] = None
 
 
 class HealthResponse(BaseModel):
@@ -124,6 +127,108 @@ class HealthResponse(BaseModel):
     argo_data_loaded: bool
     model_info: Optional[DatasetInfo] = None
     argo_info: Optional[dict] = None
+
+
+class DataFreshness(BaseModel):
+    """Real timestamps of the loaded datasets, surfaced in the UI so users can
+    see how fresh the served data is (Phase 2c)."""
+    model_dataset_time_range: Optional[List[Optional[str]]] = None
+    model_file_loaded_at: Optional[str] = None
+    argo_most_recent_profile: Optional[str] = None
+    checked_at: Optional[str] = None
+
+
+class CoLocationMatch(BaseModel):
+    """One in-situ platform matched to the model grid near the query point."""
+    sensor_id: str
+    platform_id: Optional[str] = None
+    profile_id: Optional[str] = None
+    sensor_type: str
+    name: Optional[str] = None
+    latitude: float
+    longitude: float
+    timestamp: Optional[str] = None
+    distance_km: float
+    time_offset_hours: float
+    temporal_delta_hours: float
+    model_value: Optional[float] = None
+    observed_value: Optional[float] = None
+    rmse: Optional[float] = None
+    bias: Optional[float] = None
+    qc_passed: bool = True
+    n_soundings: int = 0
+    max_depth_m: float = 0.0
+    match_score: float
+
+
+class CoLocationQuery(BaseModel):
+    latitude: float
+    longitude: float
+    radius_km: float
+    time_window_hours: float
+    variable: str
+    time_index: int
+
+
+class CoLocationResponse(BaseModel):
+    """Response contract for /api/analytics/colocate (matches frontend api.ts)."""
+    query: CoLocationQuery
+    matches: List[CoLocationMatch]
+    total_candidates: int
+
+
+class AnomalyFeatures(BaseModel):
+    mean_delta: float
+    max_delta: float
+    upper_200m_heat_delta: float
+    thermocline_gradient_diff: float
+    max_layer_depth: float
+
+
+class AnomalyFleetMember(BaseModel):
+    id: str
+    platform_id: str
+    latitude: float
+    longitude: float
+    status: str
+    severity: str
+    anomaly_score: float
+    max_delta: float
+    max_depth: float
+    hypothesis: str
+
+
+class AnomalyFleetSummary(BaseModel):
+    """Fleet-wide Isolation Forest summary driving the header anomaly badge."""
+    total_floats: int
+    critical_count: int
+    warning_count: int
+    nominal_count: int
+    highest_anomaly_float: Optional[AnomalyFleetMember] = None
+    fleet: List[AnomalyFleetMember]
+
+
+class AnomalyLayerEntry(BaseModel):
+    depth: float
+    model: float
+    observed: float
+    delta: float
+    is_anomaly: bool
+
+
+class AnomalyAnalysisResponse(BaseModel):
+    """Single-profile Isolation Forest analysis (/api/anomaly/detect/{id})."""
+    profile_id: str
+    variable: str
+    anomaly_score: float
+    status: str
+    severity: str
+    features: AnomalyFeatures
+    hypothesis: str
+    anomalous_layer_count: int
+    anomalous_depth_range: Optional[List[float]] = None
+    layer_breakdown: List[AnomalyLayerEntry]
+    ml_metadata: dict
 
 
 class HeatPotentialStatistics(BaseModel):

@@ -9,7 +9,7 @@
 import React from 'react';
 import './ProductModeSelector.css';
 
-export type ProductMode = 'research' | 'operational' | 'learn' | 'datamanager';
+export type ProductMode = 'research' | 'operational' | 'sounding' | 'learn' | 'datamanager';
 
 interface ProductModeSelectorProps {
   currentMode: ProductMode;
@@ -39,6 +39,15 @@ export const ProductModeSelector: React.FC<ProductModeSelectorProps> = ({
         >
           <span className="mode-icon">🚨</span>
           <span className="mode-text">Situation Room</span>
+        </button>
+
+        <button
+          className={`product-mode-btn ${currentMode === 'sounding' ? 'active sounding' : ''}`}
+          onClick={() => onSelectMode('sounding')}
+          title="Sounding Studio: Dedicated full-page observation vs model profile & 70-layer data matrix"
+        >
+          <span className="mode-icon">📊</span>
+          <span className="mode-text">Sounding Studio</span>
         </button>
 
         <button

@@ -2,7 +2,7 @@
   position: absolute;
   top: 12px;
   right: 12px;
-  width: 400px;
+  width: 420px;
   max-height: calc(100vh - 170px);
   background: rgba(15, 23, 42, 0.95);
   border: 1px solid rgba(56, 189, 248, 0.3);
@@ -13,8 +13,20 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.3) transparent;
   animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.comparison-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.comparison-panel::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.3);
+  border-radius: 3px;
 }
 
 @keyframes slideIn {
@@ -58,6 +70,28 @@
   font-size: 11px;
   color: #7fb8d0;
   font-variant-numeric: tabular-nums;
+}
+
+.expand-studio-btn {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.expand-studio-btn:hover {
+  background: rgba(56, 189, 248, 0.3);
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
 }
 
 .close-btn {

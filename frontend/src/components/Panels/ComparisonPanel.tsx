@@ -23,6 +23,7 @@ interface ComparisonPanelProps {
   timeIndex: number;
   explainMode?: ExplainMode;
   onClose: () => void;
+  onOpenFullPage?: () => void;
 }
 
 export default function ComparisonPanel({
@@ -31,6 +32,7 @@ export default function ComparisonPanel({
   timeIndex,
   explainMode = 'citizen',
   onClose,
+  onOpenFullPage,
 }: ComparisonPanelProps) {
   const [comparison, setComparison] = useState<ComparisonResponse | null>(null);
   const [profile, setProfile] = useState<ArgoProfile | null>(null);
@@ -186,9 +188,20 @@ export default function ComparisonPanel({
             </div>
           )}
         </div>
-        <button className="close-btn" onClick={onClose} title="Close Panel">
-          ✕
-        </button>
+        <div className="panel-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {onOpenFullPage && (
+            <button
+              className="expand-studio-btn"
+              onClick={onOpenFullPage}
+              title="Open in dedicated full-page In-Situ Sounding Studio"
+            >
+              ⛶ FULL PAGE
+            </button>
+          )}
+          <button className="close-btn" onClick={onClose} title="Close Panel">
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* Hero ML Anomaly Diagnostic Banner */}

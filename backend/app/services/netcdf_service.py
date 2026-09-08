@@ -5,7 +5,7 @@ spatial/depth/time subsetting. Never loads full datasets into memory.
 """
 import xarray as xr
 import numpy as np
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Tuple, Dict, Any, List
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,6 +18,9 @@ class NetCDFService:
         self.filepath = filepath
         self.dataset: Optional[xr.Dataset] = None
         self._is_loaded = False
+        # Wall-clock time at which this dataset file was loaded into the
+        # service — used by the UI freshness badge (Phase 2c).
+        self.loaded_at = None
     
     def load(self) -> bool:
         """Load dataset with lazy chunking (data not read until accessed)."""
@@ -29,6 +32,8 @@ class NetCDFService:
                 engine="netcdf4",
             )
             self._is_loaded = True
+            from datetime import datetime, timezone
+            self.loaded_at = datetime.now(timezone.utc).isoformat()
             logger.info(f"Loaded NetCDF dataset: {self.filepath}")
             logger.info(f"  Variables: {list(self.dataset.data_vars)}")
             logger.info(f"  Dimensions: {dict(self.dataset.sizes)}")
@@ -62,9 +67,32 @@ class NetCDFService:
             "lon_range": [float(ds[lon_name].min()), float(ds[lon_name].max())] if lon_name else [],
             "depth_levels": ds[depth_name].values.tolist() if depth_name else [],
             "time_steps": int(ds.sizes.get(time_name, 0)) if time_name else 0,
-            "is_synthetic": True  # Flag: using sample data
+            # Synthetic vs real is now decided by an ingest-time provenance
+            # attribute, not hardcoded — scripts/generate_sample_data.py writes
+            # is_synthetic="true", real CMEMS/Argo ingestion does not.
+            "is_synthetic": str(ds.attrs.get("is_synthetic", "")).lower() == "true",
+            "dataset_time_range": self.get_time_range(),
+            "source_provenance": ds.attrs.get("source_provenance") or ds.attrs.get("source") or None,
+            "loaded_at": self.loaded_at,
         }
         return info
+
+    def get_time_range(self) -> List[Optional[str]]:
+        """Real first/last time coordinate of the loaded dataset as ISO strings.
+        Drives the 'Model: updated Xh ago' freshness badge in the UI."""
+        if not self.is_loaded:
+            return [None, None]
+        time_name = self._find_coord('time', 't')
+        if not time_name:
+            return [None, None]
+        try:
+            import pandas as pd
+            times = pd.DatetimeIndex(self.dataset[time_name].values)
+            if len(times) == 0:
+                return [None, None]
+            return [times.min().isoformat(), times.max().isoformat()]
+        except Exception:
+            return [None, None]
     
     def _find_coord(self, *names: str) -> Optional[str]:
         """Find a coordinate by trying multiple possible names."""

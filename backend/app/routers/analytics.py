@@ -12,7 +12,11 @@ from typing import Literal, Optional, Any
 from datetime import datetime, timezone
 import numpy as np
 import math
-from ..models.schemas import HeatPotentialResponse, HeatPotentialPoint
+from ..models.schemas import (
+    HeatPotentialResponse,
+    HeatPotentialPoint,
+    CoLocationResponse,
+)
 
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics & Spatial Intelligence"])
@@ -188,12 +192,11 @@ def calculate_region_stats(payload: BoundingBoxRequest, request: Request):
             "currents": {
                 "mean_speed_ms": round(float(np.mean(current_speeds)), 2) if len(current_speeds) > 0 else 0.42,
                 "max_speed_ms": round(float(np.max(current_speeds)), 2) if len(current_speeds) > 0 else 0.95,
-            },
-            "observations_count": len(argo_profiles),
-            "model_mean_residual": mean_model_error,
-            "anomalies_detected": anomaly_count,
-            "sample_points": len(valid_temp)
-        }
+            },        "observations_count": len(argo_profiles),
+        "model_mean_residual": mean_model_error,
+        "anomalies_detected": anomaly_count,
+        "sample_points": len(valid_temp)
+    }
         if cache_service:
             cache_service.set(cache_key, result, ttl_seconds=900)
         return result
@@ -589,7 +592,7 @@ def _evaluate_candidate(
     }
 
 
-@router.get("/colocate")
+@router.get("/colocate", response_model=CoLocationResponse)
 def colocate_observations(
     request: Request,
     lat: float = Query(..., ge=0.0, le=28.0, description="Target latitude"),
@@ -650,10 +653,8 @@ def colocate_observations(
             "variable": variable,
             "time_index": time_index
         },
-        "total_matches": len(candidates),
         "total_candidates": len(candidates),
         "matches": candidates,
-        "candidates": candidates
     }
     if cache_service:
         cache_service.set(cache_key, result, ttl_seconds=900)

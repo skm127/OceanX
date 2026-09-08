@@ -143,6 +143,34 @@ def health_payload() -> dict:
     }
 
 
+@app.get("/api/data/freshness", tags=["System"])
+def data_freshness(request: Request):
+    """Real timestamps of the served datasets (Phase 2c).
+
+    Drives the 'Model: updated Xh ago' indicator in the UI so users can see
+    the actual age of the data instead of assuming a static demo dump.
+    """
+    nc_service = request.app.state.nc_service
+    argo_service = request.app.state.argo_service
+    from datetime import datetime, timezone
+
+    model_range = nc_service.get_time_range() if nc_service.is_loaded else [None, None]
+    argo_most_recent = None
+    if argo_service.is_loaded:
+        timestamps = [
+            p.get("timestamp") for p in argo_service.get_all_profiles_summary() if p.get("timestamp")
+        ]
+        if timestamps:
+            argo_most_recent = max(timestamps)
+
+    return {
+        "model_dataset_time_range": model_range,
+        "model_file_loaded_at": nc_service.loaded_at,
+        "argo_most_recent_profile": argo_most_recent,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 @app.get("/api/health/live")
 def liveness_check():
     return {"status": "healthy", "app_name": settings.app_name}
