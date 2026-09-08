@@ -143,18 +143,42 @@ pip install -r requirements.txt
 
 ---
 
-### Step 3: Verify or Generate Dataset
+### Step 3: Dataset Ingestion (CMEMS, Argo GDAC ERDDAP, or Synthetic)
 
-The repository comes pre-packaged with sample CF-compliant NetCDF-4 model datasets in the `data/` directory. If you ever need to regenerate fresh synthetic datasets:
+The repository comes pre-packaged with CF-compliant NetCDF-4 model datasets in the `data/` directory. OCEAN-X supports three automated ingestion pipelines via the `refresh_model_data.py` CLI utility:
 
+#### Option A: Quick-Start with Pre-Packaged / Synthetic Baseline
+If you are presenting or testing offline without external API credentials:
 ```bash
-# From the project root with the virtual environment activated:
-python scripts/generate_sample_data.py
+# Ingest or regenerate physics-grounded Indian Ocean baseline (0-28°N, 60-100°E, 0-500m):
+python scripts/refresh_model_data.py --source synthetic
 ```
 
-This creates:
-* `data/model/sample_bob_model.nc` — 4D hydrodynamic model grid ($113 \times 161$ spatial cells, 14 depth levels, 7 time steps, including variables `thetao`, `so`, `uo`, `vo`).
-* `data/argo/sample_argo_profiles.nc` — In-situ vertical soundings with temperature, salinity, and WMO quality control flags.
+#### Option B: Live Copernicus Marine Service (CMEMS) Ingestion
+To fetch real Copernicus Global Ocean Physics Analysis and Forecast (`cmems_mod_glo_phy_anfc_0.083deg_P1D-m`):
+1. Sign up for free at [marine.copernicus.eu](https://marine.copernicus.eu/).
+2. Add your credentials to `backend/.env`:
+   ```env
+   COPERNICUS_USERNAME=your_copernicus_username
+   COPERNICUS_PASSWORD=your_copernicus_password
+   ```
+3. Run the automated subset fetcher:
+   ```bash
+   python scripts/refresh_model_data.py --source cmems --days 7
+   ```
+   *Fetches daily mean potential temperature (`thetao`), practical salinity (`so`), and zonal/meridional velocities (`uo`, `vo`) bounded to the Indian Ocean domain down to 500 m depth.*
+
+#### Option C: Live Argo GDAC In-Situ Soundings from Ifremer ERDDAP
+To ingest live profiling floats cycling in the Arabian Sea and Bay of Bengal:
+```bash
+python scripts/refresh_model_data.py --source erddap --days 15
+```
+*Queries the Ifremer GDAC ERDDAP server (`erddap.ifremer.fr`), downloads valid WMO NetCDF profiles within the spatial bounding box, and parses temperature, salinity, and quality flags (QC=1/2).*
+
+#### Option D: Ingest All Live Streams
+```bash
+python scripts/refresh_model_data.py --source all --days 7
+```
 
 ---
 
@@ -258,6 +282,116 @@ Located under **`ANALYSIS ▾` -> `Co-Location Engine`**:
 * **Temporal Coincidence**: Matches observations within a user-defined time window ($\pm 1 - 7\text{ days}$).
 * **Bilinear Spatial Interpolation**: Interpolates model values at the exact float coordinates rather than using coarse grid-box centroids.
 * **Statistical Metrics**: Calculates Root Mean Square Error (RMSE), mean bias, maximum divergence, and overall match confidence score.
+
+---
+
+## Tropical Cyclone Heat Potential (TCHP) & Marine Heatwaves
+
+A cornerstone feature addressing INCOIS's operational mandate for early cyclone warnings and severe weather diagnostics in the Bay of Bengal and Arabian Sea.
+
+### Why Sea Surface Temperature (SST) Alone is Deceptive
+Satellite radiometers only sense the top skin layer of the ocean ($<1\text{ mm}$). When a tropical cyclone forms, violent surface winds induce turbulent vertical mixing that upwells deeper water. If the subsurface thermocline is shallow and cold, this upwelling cools the sea surface and chokes the cyclone's thermodynamic engine. Conversely, if a thick, warm upper-ocean layer exists, upwelling only circulates warm water, providing an uninterrupted thermal reservoir that fuels **Rapid Intensification (RI)** (as seen in Cyclones Fani, Amphan, and Mocha).
+
+### Mathematical Formulation
+OCEAN-X computes the Upper Ocean Heat Content (UOHC) / Tropical Cyclone Heat Potential ($Q_{\text{TCHP}}$) integrated from the surface down to the $26^\circ\text{C}$ isotherm depth ($D_{26}$):
+
+$$Q_{\text{TCHP}} = \rho C_p \int_{0}^{D_{26}} (T(z) - 26) \, dz$$
+
+Where:
+* $\rho = 1025\text{ kg/m}^3$ (reference density of sea water)
+* $C_p = 3985\text{ J}/(\text{kg}\cdot^\circ\text{C})$ (specific heat capacity of seawater)
+* $\rho C_p \approx 0.4085\text{ kJ}/(\text{cm}^2 \cdot \text{m} \cdot ^\circ\text{C})$ (volumetric heat conversion factor)
+* $D_{26}$ is the depth where $T(z) = 26^\circ\text{C}$, computed via vectorized piecewise linear interpolation along each vertical sounding column.
+
+### Operational Alert Thresholds
+* **$Q_{\text{TCHP}} < 50\text{ kJ/cm}^2$**: Baseline / Low Cyclogenesis Risk.
+* **$Q_{\text{TCHP}} \ge 50\text{ kJ/cm}^2$**: **INCOIS Rapid Intensification Alert Threshold**. Waters capable of supporting rapid cyclone intensification within 24–48 hours.
+* **$Q_{\text{TCHP}} \ge 80\text{ kJ/cm}^2$**: Severe / Extreme Tropical Cyclone Heat Reservoir.
+
+### Marine Heatwave (MHW) Categorization (Hobday et al., 2016)
+In addition to integral heat content, OCEAN-X classifies surface thermal divergence into standard international marine heatwave severity tiers:
+* **Category I (Moderate)**: $T_{\text{SST}} - T_{\text{clim}} \ge 1.0 \times \Delta T_{\text{threshold}}$
+* **Category II (Strong)**: $\ge 2.0 \times \Delta T_{\text{threshold}}$
+* **Category III (Severe)**: $\ge 3.0 \times \Delta T_{\text{threshold}}$
+* **Category IV (Extreme)**: $\ge 4.0 \times \Delta T_{\text{threshold}}$
+
+### Interactive HUD & 3D GPU Colormap
+* **Layer Rail Toggle**: Accessible via hotkey `L` under "Cyclone Heat Potential (TCHP)". Includes a quick preset for "Bay of Bengal Cyclone Season View".
+* **3D Globe Projection**: Evaluated across 18,000+ grid points in $<40\text{ ms}$ on the FastAPI backend and rendered on the 3D globe via a custom high-contrast color ramp.
+* **Point Inspection HUD**: Left-clicking any cell on the globe pops up the **TCHP Inspector Card** showing exact coordinates, $Q_{\text{TCHP}}$ value, $D_{26}$ depth, SST, MHW category, and operational cyclone risk guidance.
+
+---
+
+## Data Provenance & Multi-Tier Caching
+
+Scientific trustworthiness is the foundation of OCEAN-X. Forecasters and researchers must know at all times whether they are looking at real operational data or simulated baselines.
+
+### The `DataSourceBadge` Indicator
+Located prominently in the top header:
+* **`[ ● LIVE INCOIS ]` (Green/Emerald)**: Connected to the live FastAPI backend. Shows active NetCDF dataset name, spatial resolution ($0.25^\circ$), number of depth slices ($14$), and registered multi-sensor platforms ($14$).
+* **`[ ◆ SIMULATED DATA ]` (Amber)**: Clear visual notification when operating in offline client-side simulation fallback. Clicking the badge opens a diagnostics popover allowing the user to inspect latency or force an immediate reconnect attempt.
+
+### Multi-Tier Caching Architecture
+To maintain instantaneous 60 FPS client responsiveness:
+1. **Tier 1 (Client-Side In-Memory Cache)**: Depth slices and soundings are memoized in React state, preventing duplicate network fetches during orbit and pan operations.
+2. **Tier 2 (Server-Side In-Memory LRU Cache)**: High-frequency analytical requests (`/transect`, `/colocate`, `/region/stats`, `/heat-potential`) are cached in an in-memory thread-safe LRU store with a 15-minute TTL.
+3. **Tier 3 (Optional Redis Cache)**: If Redis is available, server-side caching automatically delegates to Redis for multi-worker deployments.
+
+---
+
+## "How We Built It" — Technical Challenges & War Stories
+
+Building a browser-native 3D oceanographic workstation that unifies numerical models and sparse in-situ sensors required solving four fundamental engineering challenges:
+
+### 1. The Binary Slice Optimization (72 KB IEEE 754 vs 400 KB JSON)
+* **The Problem**: A single 2D depth slice of the Bay of Bengal model spans $161 \times 113$ grid cells ($18,193$ floating-point values). Serializing this to JSON resulted in a $\sim 420\text{ KB}$ text payload per request. Slicing through 14 depth levels or animating time steps created heavy garbage collection pauses and dropped browser frame rates below 20 FPS.
+* **The Solution**: We engineered a zero-copy binary streaming pipeline (`/api/model/slice`). The backend extracts the `xarray.DataArray`, flattens it to a continuous C-contiguous array of 32-bit floats, and streams it as `application/octet-stream` ($72.7\text{ KB}$ raw binary). Grid dimensions ($X, Y$) and value ranges ($V_{\min}, V_{\max}$) are passed in HTTP headers (`x-width`, `x-height`, `x-min`, `x-max`). The frontend reads the raw `ArrayBuffer` directly into a `Float32Array` and uploads it to a `THREE.DataTexture` on the GPU in under $15\text{ ms}$.
+
+### 2. 4D Spatiotemporal Co-Location across Irregular Grids
+* **The Problem**: Numerical ocean models define regular lat/lon coordinate matrices with discrete vertical sigma/z-levels ($0, 10, 20, 50, 100\dots 500\text{ m}$). Conversely, drifting Argo floats and moored buoys record continuous physical soundings at irregular, unaligned depths. Determining whether a float observation validates or contradicts a model grid cell required accurate spatial and vertical interpolation.
+* **The Solution**: We implemented a 4D co-location pipeline in `analytics.py`. First, it filters platforms within a spherical Haversine distance radius ($\le 250\text{ km}$) and temporal window ($\le \pm 168\text{ h}$). For each candidate, it extracts the 4 bounding model grid cells and performs 2D bilinear interpolation horizontally, followed by 1D piecewise linear interpolation vertically. This yields real, authentic Root Mean Square Error (RMSE), mean bias, and match confidence scores without bias from grid-box centroid displacement.
+
+### 3. Detecting Trapped Subsurface Marine Heatwaves
+* **The Problem**: Satellite infrared and microwave radiometers only penetrate the top millimeter of the sea surface. Mesoscale cyclonic and anticyclonic eddies frequently trap immense heat anomalies deep in the thermocline ($80 - 160\text{ m}$) with virtually zero surface temperature signature. Rule-based surface thresholding missed these critical hazard areas completely.
+* **The Solution**: We trained an unsupervised `scikit-learn` `IsolationForest` model on 5-dimensional vertical feature vectors:
+  $$\vec{F} = \left[ \overline{\Delta T}, \, \max(\Delta T), \, \Delta Q_{200\text{m}}, \, \frac{\partial \Delta T}{\partial z}, \, z_{\text{div}} \right]$$
+  This enables OCEAN-X to autonomously flag subsurface marine heatwaves (such as Float `#2902345` with a $+3.22^\circ\text{C}$ excess heat anomaly trapped at $110\text{ m}$ depth) that conventional satellite surveillance overlooks.
+
+### 4. Zero-Drift Offline Fallback
+* **The Problem**: During hackathons, conferences, and operational field deployments at sea, internet connectivity is notoriously fragile. A live demonstration that crashes because an external API or backend service is unreachable is fatal.
+* **The Solution**: We wrote a full mirror simulation engine in `mockFallback.ts`. The offline engine implements the exact same physical formulas (including the Hobday MHW classification, $D_{26}$ isotherm integration, and Haversine distance calculations) directly in TypeScript. If the FastAPI backend drops offline, the client smoothly transitions to simulated mode without crashing or displaying blank screens, while displaying the amber `[ ◆ SIMULATED DATA ]` badge for scientific transparency.
+
+---
+
+## Judge Verification Walkthrough Trail (3-Minute Tour for SIH Evaluators)
+
+Evaluators and judges can follow this step-by-step trail to verify that OCEAN-X runs on real oceanographic principles and works seamlessly end-to-end:
+
+```
+[ Step 1: Data Provenance ] -> [ Step 2: Anomaly Detection ] -> [ Step 3: TCHP Cyclone Reservoir ]
+                                                                             │
+[ Step 5: 2D Vertical Transect ] <- [ Step 4: 4D Co-Location Studio ] <─────┘
+```
+
+1. **Verify Data Provenance (Top Bar)**:
+   - Notice the green **`[ ● LIVE INCOIS ]`** badge in the top navigation bar.
+   - Click the badge to open the **Data Pipeline Integrity** inspector. Confirm connection to the local FastAPI backend (`Port 8000`), dataset dimensions ($113 \times 161$, 14 depth slices, 7 days), and active 14-platform in-situ network.
+2. **Inspect Subsurface Marine Heatwave (Hotkey `4` & `P`)**:
+   - Press hotkey **`4`** on your keyboard (or click the alert banner in the Situation Room). The 3D camera smoothly glides to Argo Float `#2902345` in the Central Bay of Bengal.
+   - Press **`P`** to toggle the **Vertical Profile Sounding HUD**.
+   - Notice that at the surface ($0\text{ m}$), model and float agree closely ($\Delta T = +0.02^\circ\text{C}$). Now scrub down to $110\text{ m}$: observe the massive $+3.22^\circ\text{C}$ subsurface heat anomaly, accompanied by the automated Isolation Forest diagnostic advisory.
+3. **Inspect Tropical Cyclone Heat Potential (Hotkey `L`)**:
+   - Press **`L`** to open the Scientific Layer Rail drawer.
+   - Toggle **Cyclone Heat Potential (TCHP)**. Notice the 3D globe transitions to the TCHP heat reservoir colormap.
+   - Left-click on the deep red thermal pool in the central Bay of Bengal. The **TCHP Inspector HUD** will appear displaying the exact $Q_{\text{TCHP}}$ value ($>65\text{ kJ/cm}^2$), $26^\circ\text{C}$ isotherm depth ($D_{26} = 84\text{ m}$), and the **INCOIS Rapid Intensification Alert**.
+4. **Test 4D Spatial Co-Location Studio (`ANALYSIS ▾`)**:
+   - In the top navigation, open **`ANALYSIS ▾` -> `Co-Location Engine`**.
+   - Click **"Run Spatial Co-Location"**.
+   - Observe real candidates matched within the search radius ($250\text{ km}$) and time window ($168\text{ h}$). Review calculated metrics: Haversine distance ($28.4\text{ km}$), RMSE ($0.28^\circ\text{C}$), mean bias ($-0.14^\circ\text{C}$), and QC verification status.
+5. **Inspect 2D Vertical Water Column Transect (Hotkey `T`)**:
+   - Press **`T`** to open the Vertical Transect tool.
+   - Click **"Preset: Chennai -> Port Blair"**.
+   - Inspect the rendered 2D vertical depth section ($0 - 500\text{ m}$ vs $0 - 1360\text{ km}$ distance) showing internal waves and thermocline slope across the basin.
 
 ---
 

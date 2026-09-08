@@ -41,4 +41,6 @@ redisdata/
 *.zip
 *.tar.gz
 prd_dump.txt
+prd_full.txt
 .vercel/
+.freebuff/
