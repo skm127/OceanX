@@ -41,6 +41,39 @@ def get_argo_profile(profile_id: str, request: Request):
     return profile
 
 
+@router.get("/all")
+def get_all_observations(request: Request):
+    """Get all in-situ observational platforms (Argo, Moored Buoys, Gliders)."""
+    argo_service = request.app.state.argo_service
+    return argo_service.get_all_sensors_summary()
+
+
+@router.get("/buoys")
+def get_moored_buoys(request: Request):
+    """Get INCOIS OMNI & RAMA moored buoys."""
+    argo_service = request.app.state.argo_service
+    buoys = argo_service.get_moored_buoys()
+    return {"buoys": buoys, "count": len(buoys)}
+
+
+@router.get("/gliders")
+def get_glider_missions(request: Request):
+    """Get autonomous underwater glider missions."""
+    argo_service = request.app.state.argo_service
+    gliders = argo_service.get_gliders()
+    return {"gliders": gliders, "count": len(gliders)}
+
+
+@router.get("/sensor/{sensor_id}")
+def get_sensor_by_id(sensor_id: str, request: Request):
+    """Get depth profile and telemetry for any sensor (Argo, Buoy, Glider)."""
+    argo_service = request.app.state.argo_service
+    sensor = argo_service.get_profile(sensor_id)
+    if not sensor:
+        raise HTTPException(status_code=404, detail=f"Sensor platform {sensor_id} not found")
+    return sensor
+
+
 @router.get("/info")
 def get_observations_info(request: Request):
     """Get information about loaded observation data."""

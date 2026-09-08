@@ -24,6 +24,15 @@ export interface ArgoProfile {
   depths: number[];
   temperatures: number[] | null;
   salinities: number[] | null;
+  qc_flags?: number[];
+  surface_meteorology?: {
+    sea_surface_temp?: number;
+    air_temperature?: number;
+    wind_speed_kts?: number;
+    wind_direction_deg?: number;
+    sea_level_pressure_hpa?: number;
+    relative_humidity_pct?: number;
+  };
   source: string;
 }
 

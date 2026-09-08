@@ -153,10 +153,24 @@ export default function ComparisonPanel({
               <span className="anomaly-badge nominal">🟢 MODEL NOMINAL</span>
             )}
           </div>
-          <h3>FLOAT #{profile?.platform_id || profileId}</h3>
+          <h3>
+            {profile?.platform_type === 'moored_buoy'
+              ? `INCOIS MOORED BUOY #${profile.platform_id}`
+              : profile?.platform_type === 'glider'
+              ? `OCEAN GLIDER #${profile.platform_id}`
+              : `FLOAT #${profile?.platform_id || profileId}`}
+          </h3>
           <span className="coords">
             {profile?.latitude.toFixed(2)}°N, {profile?.longitude.toFixed(2)}°E // {varLabel} ({unit})
           </span>
+          {profile?.surface_meteorology && (
+            <div className="surface-met-strip" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px', fontSize: '11px', color: '#38bdf8' }}>
+              <span>🌡️ Air: {profile.surface_meteorology.air_temperature}°C</span>
+              <span>💨 Wind: {profile.surface_meteorology.wind_speed_kts} kts</span>
+              <span>🧭 SLP: {profile.surface_meteorology.sea_level_pressure_hpa} hPa</span>
+              <span>💧 RH: {profile.surface_meteorology.relative_humidity_pct}%</span>
+            </div>
+          )}
         </div>
         <button className="close-btn" onClick={onClose} title="Close Panel">
           ✕
@@ -476,6 +490,7 @@ export default function ComparisonPanel({
                     <th>Model</th>
                     <th>Observed</th>
                     <th>Δ (Obs-Model)</th>
+                    <th>WMO QC</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -491,6 +506,19 @@ export default function ComparisonPanel({
                       <td>{c.observed_value.toFixed(2)}</td>
                       <td className={c.delta > 0 ? 'delta-pos' : 'delta-neg'}>
                         {c.delta > 0 ? `+${c.delta.toFixed(2)}` : c.delta.toFixed(2)} {unit}
+                      </td>
+                      <td>
+                        <span style={{
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          background: profile?.qc_flags?.[i] === 2 ? 'rgba(251, 191, 36, 0.2)' : 'rgba(52, 211, 153, 0.2)',
+                          color: profile?.qc_flags?.[i] === 2 ? '#fbbf24' : '#34d399',
+                          border: `1px solid ${profile?.qc_flags?.[i] === 2 ? 'rgba(251, 191, 36, 0.4)' : 'rgba(52, 211, 153, 0.4)'}`,
+                        }}>
+                          {profile?.qc_flags?.[i] === 2 ? 'QC 2 (Prob. Good)' : 'QC 1 (Good)'}
+                        </span>
                       </td>
                       <td>
                         {c.anomaly_flag ? (

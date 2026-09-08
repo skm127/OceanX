@@ -433,3 +433,153 @@ export async function queryAiAnalyst(params: {
     return getMockAiAnalyst(params);
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// SAGAR-VIEW Multi-Sensor INCOIS Network APIs
+// ═══════════════════════════════════════════════════════════════
+
+export interface SensorSummary {
+  id: string;
+  type: 'argo' | 'moored_buoy' | 'glider';
+  platform_id: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+  last_report?: string;
+}
+
+export interface AllObservationsResponse {
+  argo: SensorSummary[];
+  moored_buoys: SensorSummary[];
+  gliders: SensorSummary[];
+  total_platforms: number;
+}
+
+export interface CoLocationMatch {
+  sensor_id: string;
+  sensor_type: string;
+  latitude: number;
+  longitude: number;
+  distance_km: number;
+  time_offset_hours: number;
+  model_value: number | null;
+  observed_value: number | null;
+  rmse: number | null;
+  bias: number | null;
+  match_score: number;
+}
+
+export interface CoLocationResponse {
+  query: { lat: number; lon: number; radius_km: number; time_window_hours: number };
+  matches: CoLocationMatch[];
+  total_candidates: number;
+}
+
+/** Get all observations across all sensor types (Argo + Buoys + Gliders) */
+export async function getAllObservations(): Promise<AllObservationsResponse> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockAllObservations();
+  }
+  try {
+    const res = await api.get('/api/observations/all');
+    notifySuccess();
+    return res.data;
+  } catch {
+    notifyFallback();
+    return getMockAllObservations();
+  }
+}
+
+/** Spatial-temporal co-location: find nearby observations for a model grid point */
+export async function getCoLocationResults(params: {
+  lat: number;
+  lon: number;
+  radius_km?: number;
+  time_window_hours?: number;
+  variable?: string;
+  time_index?: number;
+}): Promise<CoLocationResponse> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockCoLocation(params.lat, params.lon);
+  }
+  try {
+    const res = await api.get('/api/analytics/colocate', {
+      params: {
+        lat: params.lat,
+        lon: params.lon,
+        radius_km: params.radius_km ?? 200,
+        time_window_hours: params.time_window_hours ?? 24,
+        variable: params.variable ?? 'thetao',
+        time_index: params.time_index ?? 0,
+      },
+    });
+    notifySuccess();
+    return res.data;
+  } catch {
+    notifyFallback();
+    return getMockCoLocation(params.lat, params.lon);
+  }
+}
+
+// ── Mock fallbacks for Vercel deployment ──
+
+function getMockAllObservations(): AllObservationsResponse {
+  return {
+    argo: [
+      { id: 'argo_2902345', type: 'argo', platform_id: '2902345', latitude: 14.5, longitude: 84.8, status: 'active' },
+      { id: 'argo_2904001', type: 'argo', platform_id: '2904001', latitude: 12.3, longitude: 87.5, status: 'active' },
+      { id: 'argo_2903811', type: 'argo', platform_id: '2903811', latitude: 16.1, longitude: 83.2, status: 'active' },
+      { id: 'argo_5904321', type: 'argo', platform_id: '5904321', latitude: 8.7, longitude: 72.4, status: 'active' },
+      { id: 'argo_2901678', type: 'argo', platform_id: '2901678', latitude: 10.5, longitude: 74.1, status: 'active' },
+      { id: 'argo_5905012', type: 'argo', platform_id: '5905012', latitude: 18.3, longitude: 67.6, status: 'active' },
+      { id: 'argo_2905234', type: 'argo', platform_id: '2905234', latitude: 4.2, longitude: 81.9, status: 'active' },
+      { id: 'argo_2906001', type: 'argo', platform_id: '2906001', latitude: 6.8, longitude: 88.2, status: 'active' },
+    ],
+    moored_buoys: [
+      { id: 'buoy_BD08', type: 'moored_buoy', platform_id: 'BD08', latitude: 13.0, longitude: 84.0, status: 'operational' },
+      { id: 'buoy_BD11', type: 'moored_buoy', platform_id: 'BD11', latitude: 15.5, longitude: 86.5, status: 'operational' },
+      { id: 'buoy_AD02', type: 'moored_buoy', platform_id: 'AD02', latitude: 15.0, longitude: 69.0, status: 'operational' },
+      { id: 'buoy_AD07', type: 'moored_buoy', platform_id: 'AD07', latitude: 10.5, longitude: 72.5, status: 'operational' },
+      { id: 'buoy_RAMA_EQ', type: 'moored_buoy', platform_id: 'RAMA_EQ', latitude: 0.0, longitude: 80.5, status: 'operational' },
+    ],
+    gliders: [
+      { id: 'glider_BOB_01', type: 'glider', platform_id: 'GLIDER_BOB_01', latitude: 16.0, longitude: 85.5, status: 'active_mission' },
+    ],
+    total_platforms: 14,
+  };
+}
+
+function getMockCoLocation(lat: number, lon: number): CoLocationResponse {
+  return {
+    query: { lat, lon, radius_km: 200, time_window_hours: 24 },
+    matches: [
+      {
+        sensor_id: '2902345', sensor_type: 'argo',
+        latitude: 14.5, longitude: 84.8,
+        distance_km: Math.sqrt((lat - 14.5) ** 2 + (lon - 84.8) ** 2) * 111,
+        time_offset_hours: 2,
+        model_value: 28.5, observed_value: 31.7,
+        rmse: 0.847, bias: 3.22, match_score: 87.8,
+      },
+      {
+        sensor_id: 'BD11', sensor_type: 'moored_buoy',
+        latitude: 15.5, longitude: 86.5,
+        distance_km: Math.sqrt((lat - 15.5) ** 2 + (lon - 86.5) ** 2) * 111,
+        time_offset_hours: 0,
+        model_value: 29.1, observed_value: 29.4,
+        rmse: 0.212, bias: 0.30, match_score: 34.5,
+      },
+      {
+        sensor_id: 'GLIDER_BOB_01', sensor_type: 'glider',
+        latitude: 16.0, longitude: 85.5,
+        distance_km: Math.sqrt((lat - 16.0) ** 2 + (lon - 85.5) ** 2) * 111,
+        time_offset_hours: 8,
+        model_value: 27.8, observed_value: 28.1,
+        rmse: 0.156, bias: 0.30, match_score: 19.3,
+      },
+    ],
+    total_candidates: 3,
+  };
+}

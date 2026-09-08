@@ -157,6 +157,123 @@ function SingleBuoy({
   );
 }
 
+const INCOIS_BUOYS = [
+  { id: 'buoy_BD08', platform_id: 'BD08', lat: 13.0, lon: 84.0, name: 'OMNI BD08 (Cyclonic TCHP Alert)', warning: true },
+  { id: 'buoy_BD11', platform_id: 'BD11', lat: 15.5, lon: 86.5, name: 'OMNI BD11 (Central Bay)', warning: false },
+  { id: 'buoy_AD02', platform_id: 'AD02', lat: 15.0, lon: 69.0, name: 'OMNI AD02 (Arabian Sea)', warning: false },
+  { id: 'buoy_AD07', platform_id: 'AD07', lat: 10.5, lon: 72.5, name: 'RAMA AD07 (Lakshadweep)', warning: false },
+  { id: 'buoy_RAMA_EQ', platform_id: 'RAMA_EQ', lat: 0.0, lon: 80.5, name: 'RAMA Equatorial', warning: false },
+];
+
+function MooredBuoy3DMarker({
+  buoy,
+  isSelected,
+  onSelect,
+}: {
+  buoy: typeof INCOIS_BUOYS[0];
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const ringRef = useRef<THREE.Mesh>(null);
+  const pos = latLonToVector3(buoy.lat, buoy.lon, GLOBE_RADIUS + 0.02);
+
+  useFrame(({ clock }) => {
+    if (ringRef.current) {
+      const t = clock.getElapsedTime();
+      const pingT = (t * 0.8) % 1.6;
+      const scale = 0.7 + pingT * 2.2;
+      ringRef.current.scale.set(scale, scale, scale);
+      const mat = ringRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = Math.max(0, 0.6 - pingT / 1.6);
+    }
+  });
+
+  return (
+    <group position={pos}>
+      {/* Mooring radar ping ring */}
+      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.02, 0.026, 24]} />
+        <meshBasicMaterial
+          color={buoy.warning ? '#ff9800' : '#ffc107'}
+          transparent
+          opacity={0.6}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* Hexagonal buoy body */}
+      <mesh
+        rotation={[0, 0, 0]}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(buoy.id);
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = 'default';
+        }}
+      >
+        <cylinderGeometry args={[0.016, 0.012, 0.028, 6]} />
+        <meshStandardMaterial
+          color={isSelected ? '#ffffff' : buoy.warning ? '#ff9800' : '#ffc107'}
+          emissive={buoy.warning ? '#e65100' : '#ff8f00'}
+          emissiveIntensity={isSelected ? 0.8 : 0.4}
+          roughness={0.3}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+function Glider3DMarker({
+  isSelected,
+  onSelect,
+}: {
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const gliderPos = latLonToVector3(16.0, 85.5, GLOBE_RADIUS + 0.02);
+  const pulseRef = useRef<THREE.Mesh>(null);
+
+  useFrame(({ clock }) => {
+    if (pulseRef.current) {
+      const t = clock.getElapsedTime();
+      const scale = 1.0 + 0.3 * Math.sin(t * 3);
+      pulseRef.current.scale.set(scale, scale, scale);
+    }
+  });
+
+  return (
+    <group position={gliderPos}>
+      <mesh
+        ref={pulseRef}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect('glider_bob_01');
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = 'default';
+        }}
+      >
+        <octahedronGeometry args={[0.02, 0]} />
+        <meshStandardMaterial
+          color={isSelected ? '#ffffff' : '#34d399'}
+          emissive="#059669"
+          emissiveIntensity={0.6}
+          roughness={0.2}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 export default function ArgoMarkers({
   profiles,
   selectedId,
@@ -164,6 +281,7 @@ export default function ArgoMarkers({
 }: ArgoMarkersProps) {
   return (
     <group>
+      {/* 1. Argo Profiling Floats */}
       {profiles.map((profile) => (
         <SingleBuoy
           key={profile.id}
@@ -172,6 +290,22 @@ export default function ArgoMarkers({
           onSelect={onSelect}
         />
       ))}
+
+      {/* 2. INCOIS OMNI & RAMA Moored Buoys */}
+      {INCOIS_BUOYS.map((buoy) => (
+        <MooredBuoy3DMarker
+          key={buoy.id}
+          buoy={buoy}
+          isSelected={selectedId === buoy.id}
+          onSelect={onSelect}
+        />
+      ))}
+
+      {/* 3. INCOIS Autonomous Glider Mission */}
+      <Glider3DMarker
+        isSelected={selectedId === 'glider_bob_01'}
+        onSelect={onSelect}
+      />
     </group>
   );
 }

@@ -34,6 +34,11 @@ import HoverSounderHUD from './components/Controls/HoverSounderHUD';
 import DataSourceBadge from './components/Controls/DataSourceBadge';
 import DataProvenanceModal from './components/Panels/DataProvenanceModal';
 import ViewportControls from './components/Controls/ViewportControls';
+import ProductModeSelector, { type ProductMode } from './components/Controls/ProductModeSelector';
+import OperationalSituationRoom from './components/Panels/OperationalSituationRoom';
+import LearnStoryJourney from './components/Panels/LearnStoryJourney';
+import DataManagerModal from './components/Panels/DataManagerModal';
+import CoLocationModal from './components/Panels/CoLocationModal';
 import { useOceanData } from './hooks/useOceanData';
 import { useCurrentVectors } from './hooks/useCurrentVectors';
 import { useArgoData } from './hooks/useArgoData';
@@ -96,8 +101,12 @@ function App() {
   const [explainMode, setExplainMode] = useState<ExplainMode>('citizen');
   const [hoverCoord, setHoverCoord] = useState<{ lat: number; lon: number } | null>(null);
   const [cameraPitch, setCameraPitch] = useState<number>(50);
-  const [provenanceOpen, setProvenanceOpen] = useState(false);
+   const [provenanceOpen, setProvenanceOpen] = useState(false);
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+
+  // SAGAR-VIEW Product Mode & Co-Location Engine state
+  const [productMode, setProductMode] = useState<ProductMode>('research');
+  const [coLocationOpen, setCoLocationOpen] = useState(false);
 
   // Vertical Profile HUD state matching Image 1
   const [profileHudData, setProfileHudData] = useState<{
@@ -197,7 +206,7 @@ function App() {
     [variable, timeIndex]
   );
 
-  // Argo float selection with smooth camera fly-to
+  // Multi-sensor platform selection with smooth camera fly-to (Argo, Buoys, Gliders)
   const handleSelectArgo = (id: string) => {
     setSelectedProfileId(id);
     const p = argoProfiles.find((item) => item.id === id);
@@ -205,6 +214,21 @@ function App() {
       setProbedCoord({ lat: p.latitude, lon: p.longitude });
       setTargetCameraPos(latLonToVector3(p.latitude, p.longitude, 4.6));
       loadProfileForLocation(p.latitude, p.longitude, id);
+    } else {
+      const KNOWN_SENSORS: Record<string, { lat: number; lon: number }> = {
+        buoy_BD08: { lat: 13.0, lon: 84.0 },
+        buoy_BD11: { lat: 15.5, lon: 86.5 },
+        buoy_AD02: { lat: 15.0, lon: 69.0 },
+        buoy_AD07: { lat: 10.5, lon: 72.5 },
+        buoy_RAMA_EQ: { lat: 0.0, lon: 80.5 },
+        glider_bob_01: { lat: 16.0, lon: 85.5 },
+      };
+      const s = KNOWN_SENSORS[id];
+      if (s) {
+        setProbedCoord({ lat: s.lat, lon: s.lon });
+        setTargetCameraPos(latLonToVector3(s.lat, s.lon, 4.4));
+        loadProfileForLocation(s.lat, s.lon, id);
+      }
     }
   };
 
@@ -243,6 +267,26 @@ function App() {
     setRegionModalOpen(true);
   };
 
+  // SAGAR-VIEW Product Mode change handler with explainMode backward compatibility
+  const handleProductModeChange = (mode: ProductMode) => {
+    setProductMode(mode);
+    // Map product mode to explainMode for ComparisonPanel & HoverSounderHUD backward compat
+    if (mode === 'research') {
+      // Research mode preserves current explainMode (citizen/scientist toggle stays)
+    } else if (mode === 'operational') {
+      setExplainMode('citizen');
+    } else if (mode === 'learn') {
+      setExplainMode('citizen');
+    } else if (mode === 'datamanager') {
+      setExplainMode('scientist');
+    }
+  };
+
+  // Camera fly-to handler for LearnStoryJourney
+  const handleCameraFlyTo = (lat: number, lon: number, altitude?: number) => {
+    setTargetCameraPos(latLonToVector3(lat, lon, altitude ?? 4.6));
+  };
+
   // C2 Keyboard Command Hotkeys
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -268,6 +312,7 @@ function App() {
         setFleetOpen(false);
         setShowHotkeys(false);
         setBriefingOpen(false);
+        setCoLocationOpen(false);
       } else if (e.key === '1') {
         handleSelectSector('all_india');
       } else if (e.key === '2') {
@@ -330,7 +375,10 @@ function App() {
 
         {/* View Lens Switcher & Ocean Basin Presets */}
         <div className="top-bar-center">
-          <ExplainabilityToggle mode={explainMode} onChange={setExplainMode} />
+          <ProductModeSelector currentMode={productMode} onSelectMode={handleProductModeChange} />
+          {productMode === 'research' && (
+            <ExplainabilityToggle mode={explainMode} onChange={setExplainMode} />
+          )}
           <SectorNavigator
             currentSector={currentSector}
             onSelectSector={handleSelectSector}
@@ -390,6 +438,13 @@ function App() {
                     <span className="item-desc">Residual-backed diagnosis (A)</span>
                   </div>
                 </button>
+                <button className="tools-menu-item" onClick={() => setCoLocationOpen(true)}>
+                  <span className="item-icon">🎯</span>
+                  <div className="item-text">
+                    <span className="item-title">Co-Location Engine</span>
+                    <span className="item-desc">Model–observation spatial matching</span>
+                  </div>
+                </button>
               </div>
             )}
           </div>
@@ -431,6 +486,21 @@ function App() {
           </button>
         </div>
       </header>
+
+      {/* SAGAR-VIEW Operational Situation Room Banner (Blueprint §8.7 & §16) */}
+      {productMode === 'operational' && (
+        <OperationalSituationRoom
+          onJumpToAnomaly={() => handleSelectSector('anomaly_target')}
+          onJumpToBuoy={(buoyId) => {
+            if (buoyId === 'buoy_BD08') {
+              handleCameraFlyTo(13.0, 84.0, 4.2);
+              setProbedCoord({ lat: 13.0, lon: 84.0 });
+              loadProfileForLocation(13.0, 84.0, 'buoy_BD08');
+            }
+          }}
+          onClose={() => setProductMode('research')}
+        />
+      )}
 
       {/* 3D Ocean Viewport */}
       <main className="viewport">
@@ -668,6 +738,35 @@ function App() {
         <DataProvenanceModal
           isOpen={provenanceOpen}
           onClose={() => setProvenanceOpen(false)}
+        />
+
+        {/* SAGAR-VIEW Learn Mode Guided Journey (Blueprint §16) */}
+        {productMode === 'learn' && (
+          <LearnStoryJourney
+            onCameraFlyTo={handleCameraFlyTo}
+            onClose={() => setProductMode('research')}
+          />
+        )}
+
+        {/* SAGAR-VIEW Data Manager & CF-1.8 NetCDF Inspector (Blueprint §16) */}
+        {productMode === 'datamanager' && (
+          <DataManagerModal
+            onClose={() => setProductMode('research')}
+          />
+        )}
+
+        {/* SAGAR-VIEW Spatial-Temporal Co-Location Engine (Blueprint §8.2) */}
+        <CoLocationModal
+          isOpen={coLocationOpen}
+          probedLat={probedCoord?.lat ?? 14.5}
+          probedLon={probedCoord?.lon ?? 84.8}
+          onClose={() => setCoLocationOpen(false)}
+          onJumpToSensor={(lat, lon) => {
+            handleCameraFlyTo(lat, lon, 4.4);
+            setProbedCoord({ lat, lon });
+            loadProfileForLocation(lat, lon);
+            setCoLocationOpen(false);
+          }}
         />
 
         {/* Core Differentiator: Model vs Reality Comparison Drawer */}
