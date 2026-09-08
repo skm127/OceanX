@@ -16,6 +16,8 @@ import type {
   RegionStatsResponse,
   TransectResponse,
   AiAnalystResponse,
+  HeatPotentialResponse,
+  HeatPotentialPoint,
 } from '../types';
 import {
   getMockModelInfo,
@@ -31,7 +33,10 @@ import {
   getMockAiAnalyst,
   getMockAnomalySummary,
   getMockDetectAnomaly,
+  getMockHeatPotential,
+  getMockHeatPotentialPoint,
 } from './mockFallback';
+
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -547,7 +552,50 @@ export async function getCoLocationResults(params: {
   }
 }
 
+/** Get 2D Tropical Cyclone Heat Potential (TCHP) & Marine Heatwave (MHW) grid */
+export async function getHeatPotential(params?: {
+  time_index?: number;
+  lat_min?: number;
+  lat_max?: number;
+  lon_min?: number;
+  lon_max?: number;
+}): Promise<HeatPotentialResponse> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockHeatPotential(params);
+  }
+  try {
+    const res = await api.get('/api/v1/analytics/heat-potential', { params });
+    notifySuccess();
+    return res.data;
+  } catch {
+    notifyFallback();
+    return getMockHeatPotential(params);
+  }
+}
+
+/** Point inspection for Tropical Cyclone Heat Potential HUD */
+export async function inspectHeatPotentialPoint(params: {
+  lat: number;
+  lon: number;
+  time_index?: number;
+}): Promise<HeatPotentialPoint> {
+  if (forceDemoMode) {
+    notifyFallback();
+    return getMockHeatPotentialPoint(params.lat, params.lon);
+  }
+  try {
+    const res = await api.get('/api/v1/analytics/heat-potential/point', { params });
+    notifySuccess();
+    return res.data;
+  } catch {
+    notifyFallback();
+    return getMockHeatPotentialPoint(params.lat, params.lon);
+  }
+}
+
 // ── Mock fallbacks for Vercel deployment ──
+
 
 function getMockAllObservations(): AllObservationsResponse {
   return {

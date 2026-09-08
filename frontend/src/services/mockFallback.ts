@@ -16,7 +16,10 @@ import type {
   RegionStatsResponse,
   TransectResponse,
   AiAnalystResponse,
+  HeatPotentialResponse,
+  HeatPotentialPoint,
 } from '../types';
+
 
 export function getMockModelInfo(): DatasetInfo {
   return {
@@ -595,3 +598,165 @@ export function getMockCoLocationResults(lat: number, lon: number): any[] {
     }
   ];
 }
+
+export function getMockHeatPotential(params?: {
+  time_index?: number;
+  lat_min?: number;
+  lat_max?: number;
+  lon_min?: number;
+  lon_max?: number;
+}): HeatPotentialResponse {
+  const latMin = params?.lat_min ?? 0.0;
+  const latMax = params?.lat_max ?? 28.0;
+  const lonMin = params?.lon_min ?? 60.0;
+  const lonMax = params?.lon_max ?? 100.0;
+  const timeIndex = params?.time_index ?? 0;
+
+  const H = 29;
+  const W = 41;
+  const lats: number[] = [];
+  for (let i = 0; i < H; i++) lats.push(Number((latMin + (latMax - latMin) * (i / (H - 1))).toFixed(2)));
+  const lons: number[] = [];
+  for (let j = 0; j < W; j++) lons.push(Number((lonMin + (lonMax - lonMin) * (j / (W - 1))).toFixed(2)));
+
+  const tchp: (number | null)[][] = [];
+  const d26: (number | null)[][] = [];
+  const mhw_cat: (number | null)[][] = [];
+
+  let tchpMin = 999;
+  let tchpMax = -999;
+  let tchpSum = 0;
+  let oceanCount = 0;
+  let d26Sum = 0;
+  let sstSum = 0;
+  let highRiskCount = 0;
+
+  for (let i = 0; i < H; i++) {
+    const rowTchp: (number | null)[] = [];
+    const rowD26: (number | null)[] = [];
+    const rowMhw: (number | null)[] = [];
+    const lat = lats[i];
+
+    for (let j = 0; j < W; j++) {
+      const lon = lons[j];
+
+      // Rough land mask for Indian peninsula
+      const isLand = lat > 8.0 && lat < 24.0 && lon > 73.0 && lon < 85.0 && (lat > 12.0 ? lon < 84.0 : lon < 80.0);
+      if (isLand) {
+        rowTchp.push(null);
+        rowD26.push(null);
+        rowMhw.push(null);
+        continue;
+      }
+
+      // Warm pool in central Bay of Bengal around (13°N, 88°E)
+      const distBoB = Math.sqrt((lat - 13.5) ** 2 + (lon - 88.0) ** 2);
+      const bobWarmPool = Math.exp(-distBoB / 4.5);
+
+      // Secondary warm pool in southeastern Arabian Sea (Lakshadweep High)
+      const distAS = Math.sqrt((lat - 10.0) ** 2 + (lon - 71.0) ** 2);
+      const asWarmPool = Math.exp(-distAS / 3.5);
+
+      const calcD26 = Number((32.0 + 48.0 * bobWarmPool + 22.0 * asWarmPool + Math.sin(lat * 0.2) * 4.0).toFixed(1));
+      const calcSst = Number((28.2 + 2.4 * bobWarmPool + 1.2 * asWarmPool + Math.cos(lon * 0.1) * 0.4).toFixed(2));
+      const avgExcess = Math.max(0, calcSst - 26.0) * 0.55;
+      const calcTchp = Number((calcD26 * avgExcess * 0.4085).toFixed(2));
+
+      const sstAnomaly = calcSst - 28.0;
+      let cat = 0;
+      if (sstAnomaly >= 4.0) cat = 4;
+      else if (sstAnomaly >= 3.0) cat = 3;
+      else if (sstAnomaly >= 2.0) cat = 2;
+      else if (sstAnomaly >= 1.0) cat = 1;
+
+      rowTchp.push(calcTchp);
+      rowD26.push(calcD26);
+      rowMhw.push(cat);
+
+      oceanCount++;
+      tchpSum += calcTchp;
+      d26Sum += calcD26;
+      sstSum += calcSst;
+      if (calcTchp < tchpMin) tchpMin = calcTchp;
+      if (calcTchp > tchpMax) tchpMax = calcTchp;
+      if (calcTchp >= 50.0) highRiskCount++;
+    }
+    tchp.push(rowTchp);
+    d26.push(rowD26);
+    mhw_cat.push(rowMhw);
+  }
+
+  const tchpMean = oceanCount > 0 ? Number((tchpSum / oceanCount).toFixed(2)) : 0;
+  const d26Mean = oceanCount > 0 ? Number((d26Sum / oceanCount).toFixed(1)) : 0;
+  const sstMean = oceanCount > 0 ? Number((sstSum / oceanCount).toFixed(2)) : 0;
+  const highRiskPct = oceanCount > 0 ? Number(((highRiskCount / oceanCount) * 100).toFixed(1)) : 0;
+
+  return {
+    metadata: {
+      time_index: timeIndex,
+      lat_min: latMin,
+      lat_max: latMax,
+      lon_min: lonMin,
+      lon_max: lonMax,
+      width: W,
+      height: H,
+      formula: 'Q_TCHP = rho * Cp * integral_0^{D_26} (T(z) - 26) dz (factor = 0.4085 kJ/(cm^2·m·°C))',
+      provenance: 'INCOIS Operational Tropical Cyclone Heat Potential (TCHP) & Marine Heatwave (MHW) diagnostic',
+      unit: 'kJ/cm^2',
+    },
+    statistics: {
+      tchp_min: tchpMin === 999 ? 0 : tchpMin,
+      tchp_max: tchpMax === -999 ? 0 : tchpMax,
+      tchp_mean: tchpMean,
+      d26_min: 25.0,
+      d26_max: 82.0,
+      d26_mean: d26Mean,
+      sst_min: 27.5,
+      sst_max: 30.6,
+      sst_mean: sstMean,
+      high_risk_cells: highRiskCount,
+      high_risk_percentage: highRiskPct,
+      cyclone_intensification_threshold: 50.0,
+    },
+    lats,
+    lons,
+    tchp,
+    d26,
+    mhw_category: mhw_cat,
+  };
+}
+
+export function getMockHeatPotentialPoint(lat: number, lon: number): HeatPotentialPoint {
+  const distBoB = Math.sqrt((lat - 13.5) ** 2 + (lon - 88.0) ** 2);
+  const bobWarmPool = Math.exp(-distBoB / 4.5);
+  const d26 = Number((35.0 + 45.0 * bobWarmPool).toFixed(1));
+  const sst = Number((28.4 + 2.2 * bobWarmPool).toFixed(2));
+  const tchp = Number((d26 * (sst - 26.0) * 0.55 * 0.4085).toFixed(2));
+
+  let mhw_cat = 0;
+  let mhw_label = 'Nominal (No MHW)';
+  const anomaly = sst - 28.0;
+  if (anomaly >= 3.0) { mhw_cat = 3; mhw_label = 'Cat 3 - Severe MHW'; }
+  else if (anomaly >= 2.0) { mhw_cat = 2; mhw_label = 'Cat 2 - Strong MHW'; }
+  else if (anomaly >= 1.0) { mhw_cat = 1; mhw_label = 'Cat 1 - Moderate MHW'; }
+
+  let cyclone_risk = 'Low Risk';
+  if (tchp >= 80.0) cyclone_risk = 'Extreme Cyclogenesis Risk';
+  else if (tchp >= 50.0) cyclone_risk = 'High Cyclone Intensification Risk';
+  else if (tchp >= 30.0) cyclone_risk = 'Moderate Risk';
+
+  return {
+    latitude: lat,
+    longitude: lon,
+    tchp,
+    d26,
+    sst,
+    mhw_category: mhw_cat,
+    mhw_label,
+    cyclone_risk,
+    high_risk_flag: tchp >= 50.0,
+    unit: 'kJ/cm^2',
+    formula: 'Q_TCHP = rho * Cp * integral_0^{D_26} (T(z) - 26) dz',
+  };
+}
+

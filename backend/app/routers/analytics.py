@@ -12,6 +12,8 @@ from typing import Literal, Optional, Any
 from datetime import datetime, timezone
 import numpy as np
 import math
+from ..models.schemas import HeatPotentialResponse, HeatPotentialPoint
+
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics & Spatial Intelligence"])
 
@@ -656,3 +658,257 @@ def colocate_observations(
     if cache_service:
         cache_service.set(cache_key, result, ttl_seconds=900)
     return result
+
+
+@router.get("/heat-potential", response_model=HeatPotentialResponse)
+def calculate_heat_potential(
+    request: Request,
+    time_index: int = Query(default=0, ge=0, description="Model time step index"),
+    lat_min: float = Query(default=0.0, ge=0.0, le=28.0, description="Minimum latitude"),
+    lat_max: float = Query(default=28.0, ge=0.0, le=28.0, description="Maximum latitude"),
+    lon_min: float = Query(default=60.0, ge=60.0, le=100.0, description="Minimum longitude"),
+    lon_max: float = Query(default=100.0, ge=60.0, le=100.0, description="Maximum longitude"),
+):
+    """
+    Tropical Cyclone Heat Potential (TCHP) & Marine Heatwave (MHW) diagnostic.
+    Formula: Q_TCHP = rho * Cp * integral_0^{D_26} (T(z) - 26) dz
+    where factor = 0.4085 kJ/(cm^2 * m * °C) and D_26 is 26°C isotherm depth.
+    MHW categorisation follows Hobday et al. (2016) Cat 1–4.
+    """
+    nc_service = request.app.state.nc_service
+    cache_service = getattr(request.app.state, "cache_service", None)
+
+    if not nc_service.is_loaded:
+        raise HTTPException(status_code=503, detail="Model data not loaded")
+
+    actual_lat_min = min(lat_min, lat_max)
+    actual_lat_max = max(lat_min, lat_max)
+    actual_lon_min = min(lon_min, lon_max)
+    actual_lon_max = max(lon_min, lon_max)
+
+    cache_key = f"heat_potential:{time_index}:{actual_lat_min}:{actual_lat_max}:{actual_lon_min}:{actual_lon_max}"
+    if cache_service:
+        cached = cache_service.get(cache_key)
+        if cached:
+            return cached
+
+    ds = nc_service.dataset
+    lat_name = nc_service._find_coord('lat', 'latitude')
+    lon_name = nc_service._find_coord('lon', 'longitude')
+    depth_name = nc_service._find_coord('depth', 'lev')
+    time_name = nc_service._find_coord('time', 't')
+
+    if not all((lat_name, lon_name, depth_name, time_name)):
+        raise HTTPException(status_code=500, detail="Missing coordinate dimensions in model dataset")
+
+    if time_index >= ds.sizes[time_name]:
+        raise HTTPException(status_code=400, detail=f"Time index {time_index} outside range (max {ds.sizes[time_name] - 1})")
+
+    sub = ds["thetao"].isel({time_name: time_index})
+    if actual_lat_min < actual_lat_max:
+        sub = sub.sel({lat_name: slice(actual_lat_min, actual_lat_max)})
+    if actual_lon_min < actual_lon_max:
+        sub = sub.sel({lon_name: slice(actual_lon_min, actual_lon_max)})
+
+    t_3d = np.ascontiguousarray(sub.values, dtype=np.float32)
+    depths = np.ascontiguousarray(sub.coords[depth_name].values, dtype=np.float32)
+    lats = [round(float(v), 4) for v in sub.coords[lat_name].values]
+    lons = [round(float(v), 4) for v in sub.coords[lon_name].values]
+
+    K, H, W = t_3d.shape
+    d26 = np.zeros((H, W), dtype=np.float32)
+    integral = np.zeros((H, W), dtype=np.float32)
+
+    for i in range(K - 1):
+        z_top = depths[i]
+        z_bot = depths[i+1]
+        dz = z_bot - z_top
+        t_top = t_3d[i]
+        t_bot = t_3d[i+1]
+
+        # Case 1: both >= 26.0
+        both = (t_top >= 26.0) & (t_bot >= 26.0)
+        d26[both] = z_bot
+        integral[both] += 0.5 * ((t_top[both] - 26.0) + (t_bot[both] - 26.0)) * dz
+
+        # Case 2: isotherm crossing (t_top >= 26.0 and t_bot < 26.0)
+        crossing = (t_top >= 26.0) & (t_bot < 26.0)
+        denom = np.maximum(t_top[crossing] - t_bot[crossing], 1e-6)
+        f = (t_top[crossing] - 26.0) / denom
+        sub_dz = f * dz
+        d26[crossing] = z_top + sub_dz
+        integral[crossing] += 0.5 * (t_top[crossing] - 26.0) * sub_dz
+
+    # TCHP factor: 0.4085 kJ/(cm^2 * m * °C)
+    tchp = integral * 0.4085
+    sst = t_3d[0]
+
+    # Surface below 26.0: no 26 isotherm
+    below_26 = sst < 26.0
+    d26[below_26] = 0.0
+    tchp[below_26] = 0.0
+
+    # Land mask
+    is_land = np.isnan(sst)
+    d26[is_land] = np.nan
+    tchp[is_land] = np.nan
+
+    # Hobday et al. (2016) Marine Heatwave Categories (Cat 0 to Cat 4)
+    sst_anomaly = sst - 28.0
+    mhw_cat = np.zeros((H, W), dtype=np.int32)
+    mhw_cat[sst_anomaly >= 1.0] = 1
+    mhw_cat[sst_anomaly >= 2.0] = 2
+    mhw_cat[sst_anomaly >= 3.0] = 3
+    mhw_cat[sst_anomaly >= 4.0] = 4
+
+    valid_mask = ~is_land
+    valid_tchp = tchp[valid_mask]
+    valid_d26 = d26[valid_mask]
+    valid_sst = sst[valid_mask]
+
+    n_ocean_cells = int(np.sum(valid_mask))
+    if n_ocean_cells > 0:
+        tchp_min_val = round(float(np.nanmin(valid_tchp)), 2)
+        tchp_max_val = round(float(np.nanmax(valid_tchp)), 2)
+        tchp_mean_val = round(float(np.nanmean(valid_tchp)), 2)
+        d26_min_val = round(float(np.nanmin(valid_d26)), 1)
+        d26_max_val = round(float(np.nanmax(valid_d26)), 1)
+        d26_mean_val = round(float(np.nanmean(valid_d26)), 1)
+        sst_min_val = round(float(np.nanmin(valid_sst)), 2)
+        sst_max_val = round(float(np.nanmax(valid_sst)), 2)
+        sst_mean_val = round(float(np.nanmean(valid_sst)), 2)
+        high_risk_cells = int(np.sum(valid_tchp >= 50.0))
+        high_risk_pct = round(float(high_risk_cells / n_ocean_cells * 100.0), 2)
+    else:
+        tchp_min_val = tchp_max_val = tchp_mean_val = 0.0
+        d26_min_val = d26_max_val = d26_mean_val = 0.0
+        sst_min_val = sst_max_val = sst_mean_val = 0.0
+        high_risk_cells = 0
+        high_risk_pct = 0.0
+
+    tchp_list = [[None if np.isnan(v) else round(float(v), 2) for v in row] for row in tchp]
+    d26_list = [[None if np.isnan(v) else round(float(v), 1) for v in row] for row in d26]
+    mhw_list = [[None if np.isnan(sst[r, c]) else int(mhw_cat[r, c]) for c in range(W)] for r in range(H)]
+
+    response_data = {
+        "metadata": {
+            "time_index": time_index,
+            "lat_min": actual_lat_min,
+            "lat_max": actual_lat_max,
+            "lon_min": actual_lon_min,
+            "lon_max": actual_lon_max,
+            "width": W,
+            "height": H,
+            "formula": "Q_TCHP = rho * Cp * integral_0^{D_26} (T(z) - 26) dz (factor = 0.4085 kJ/(cm^2·m·°C))",
+            "provenance": "INCOIS Operational Tropical Cyclone Heat Potential (TCHP) & Marine Heatwave (MHW) diagnostic",
+            "unit": "kJ/cm^2"
+        },
+        "statistics": {
+            "tchp_min": tchp_min_val,
+            "tchp_max": tchp_max_val,
+            "tchp_mean": tchp_mean_val,
+            "d26_min": d26_min_val,
+            "d26_max": d26_max_val,
+            "d26_mean": d26_mean_val,
+            "sst_min": sst_min_val,
+            "sst_max": sst_max_val,
+            "sst_mean": sst_mean_val,
+            "high_risk_cells": high_risk_cells,
+            "high_risk_percentage": high_risk_pct,
+            "cyclone_intensification_threshold": 50.0
+        },
+        "lats": lats,
+        "lons": lons,
+        "tchp": tchp_list,
+        "d26": d26_list,
+        "mhw_category": mhw_list
+    }
+
+    if cache_service:
+        cache_service.set(cache_key, response_data, ttl_seconds=900)
+
+    return response_data
+
+
+@router.get("/heat-potential/point", response_model=HeatPotentialPoint)
+def inspect_heat_potential_point(
+    request: Request,
+    lat: float = Query(..., ge=0.0, le=28.0, description="Latitude"),
+    lon: float = Query(..., ge=60.0, le=100.0, description="Longitude"),
+    time_index: int = Query(default=0, ge=0)
+):
+    """Point inspection of TCHP, D26, SST, and MHW status for HUD inspection."""
+    nc_service = request.app.state.nc_service
+    if not nc_service.is_loaded:
+        raise HTTPException(status_code=503, detail="Model data not loaded")
+
+    depths, values = nc_service.get_depth_profile(variable="thetao", lat=lat, lon=lon, time_index=time_index)
+    valid_pairs = [(d, v) for d, v in zip(depths, values) if v is not None]
+    if not valid_pairs:
+        raise HTTPException(status_code=404, detail="No ocean data at requested coordinate")
+
+    z_vals = [p[0] for p in valid_pairs]
+    t_vals = [p[1] for p in valid_pairs]
+    sst = t_vals[0]
+
+    d26 = 0.0
+    integral = 0.0
+    if sst >= 26.0:
+        for i in range(len(valid_pairs) - 1):
+            z1, t1 = z_vals[i], t_vals[i]
+            z2, t2 = z_vals[i+1], t_vals[i+1]
+            dz = z2 - z1
+            if t1 >= 26.0 and t2 >= 26.0:
+                d26 = z2
+                integral += 0.5 * ((t1 - 26.0) + (t2 - 26.0)) * dz
+            elif t1 >= 26.0 and t2 < 26.0:
+                f = (t1 - 26.0) / max(t1 - t2, 1e-6)
+                sub_dz = f * dz
+                d26 = z1 + sub_dz
+                integral += 0.5 * (t1 - 26.0) * sub_dz
+                break
+
+    tchp = round(integral * 0.4085, 2)
+    d26 = round(d26, 1)
+    sst = round(sst, 2)
+
+    anomaly = sst - 28.0
+    if anomaly < 1.0:
+        mhw_cat = 0
+        mhw_label = "Nominal (No MHW)"
+    elif anomaly < 2.0:
+        mhw_cat = 1
+        mhw_label = "Cat 1 - Moderate MHW"
+    elif anomaly < 3.0:
+        mhw_cat = 2
+        mhw_label = "Cat 2 - Strong MHW"
+    elif anomaly < 4.0:
+        mhw_cat = 3
+        mhw_label = "Cat 3 - Severe MHW"
+    else:
+        mhw_cat = 4
+        mhw_label = "Cat 4 - Extreme MHW"
+
+    if tchp < 30.0:
+        cyclone_risk = "Low Risk"
+    elif tchp < 50.0:
+        cyclone_risk = "Moderate Risk"
+    elif tchp < 80.0:
+        cyclone_risk = "High Cyclone Intensification Risk"
+    else:
+        cyclone_risk = "Extreme Cyclogenesis Risk"
+
+    return {
+        "latitude": lat,
+        "longitude": lon,
+        "tchp": tchp,
+        "d26": d26,
+        "sst": sst,
+        "mhw_category": mhw_cat,
+        "mhw_label": mhw_label,
+        "cyclone_risk": cyclone_risk,
+        "high_risk_flag": tchp >= 50.0,
+        "unit": "kJ/cm^2",
+        "formula": "Q_TCHP = rho * Cp * integral_0^{D_26} (T(z) - 26) dz"
+    }
+

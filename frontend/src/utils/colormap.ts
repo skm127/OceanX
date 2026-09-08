@@ -40,6 +40,17 @@ export const CURRENT_COLORMAP: ColorStop[] = [
   { position: 1.0, color: [255, 60, 30] },      // Red
 ];
 
+/** Tropical Cyclone Heat Potential (TCHP) colormap: 0 to 120 kJ/cm² with rapid intensification highlight at 50 kJ/cm² */
+export const TCHP_COLORMAP: ColorStop[] = [
+  { position: 0.0, color: [10, 25, 60] },       // Deep blue (< 15 kJ/cm²)
+  { position: 0.25, color: [20, 110, 190] },    // Moderate blue (~30 kJ/cm²)
+  { position: 0.38, color: [40, 200, 150] },    // Green/Teal (~45 kJ/cm²)
+  { position: 0.42, color: [255, 210, 30] },    // Amber gold (50 kJ/cm² - INCOIS Cyclone Intensification Threshold)
+  { position: 0.58, color: [255, 80, 20] },     // Vivid orange-red (~70 kJ/cm²)
+  { position: 0.75, color: [230, 15, 60] },     // Fiery crimson (~90 kJ/cm²)
+  { position: 1.0, color: [190, 0, 170] },      // Neon violet/magenta (120+ kJ/cm² Extreme Risk)
+];
+
 /** Get the colormap for a given variable */
 export function getColormap(variable: string): ColorStop[] {
   switch (variable) {
@@ -47,9 +58,11 @@ export function getColormap(variable: string): ColorStop[] {
     case 'so': return SALINITY_COLORMAP;
     case 'uo':
     case 'vo': return CURRENT_COLORMAP;
+    case 'tchp': return TCHP_COLORMAP;
     default: return TEMPERATURE_COLORMAP;
   }
 }
+
 
 /**
  * Interpolate a color from a colormap at a normalized position (0-1).

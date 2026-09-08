@@ -8,12 +8,20 @@ import { VARIABLE_LABELS, VARIABLE_UNITS, type OceanVariable } from '../../types
 import './Colorbar.css';
 
 interface ColorbarProps {
-  variable: OceanVariable;
+  variable: OceanVariable | string;
   vMin: number;
   vMax: number;
+  customLabel?: string;
+  customUnit?: string;
 }
 
-export default function Colorbar({ variable, vMin, vMax }: ColorbarProps) {
+export default function Colorbar({
+  variable,
+  vMin,
+  vMax,
+  customLabel,
+  customUnit,
+}: ColorbarProps) {
   const colormap = useMemo(() => getColormap(variable), [variable]);
 
   // Generate CSS gradient from colormap
@@ -27,8 +35,15 @@ export default function Colorbar({ variable, vMin, vMax }: ColorbarProps) {
     };
   }, [colormap]);
 
-  const label = VARIABLE_LABELS[variable] || variable;
-  const unit = VARIABLE_UNITS[variable] || '';
+  const label =
+    customLabel ||
+    (variable === 'tchp'
+      ? 'Tropical Cyclone Heat Potential (TCHP)'
+      : VARIABLE_LABELS[variable as OceanVariable] || variable);
+
+  const unit =
+    customUnit ||
+    (variable === 'tchp' ? 'kJ/cm²' : VARIABLE_UNITS[variable as OceanVariable] || '');
 
   // Generate tick values
   const ticks = useMemo(() => {
@@ -44,12 +59,40 @@ export default function Colorbar({ variable, vMin, vMax }: ColorbarProps) {
     return result;
   }, [vMin, vMax]);
 
+  // INCOIS rapid intensification threshold marker for TCHP
+  const thresholdPos = useMemo(() => {
+    if (variable !== 'tchp' || vMax <= vMin) return null;
+    const pos = (50 - vMin) / (vMax - vMin);
+    return pos >= 0 && pos <= 1 ? pos * 100 : null;
+  }, [variable, vMin, vMax]);
+
   return (
     <div className="colorbar">
       <div className="colorbar-label">
-        {label} ({unit})
+        <span>{label} ({unit})</span>
+        {variable === 'tchp' && (
+          <span style={{ fontSize: '9px', color: '#f59e0b', fontWeight: 600, marginLeft: '6px' }}>
+            [Alert Threshold: 50 kJ/cm²]
+          </span>
+        )}
       </div>
-      <div className="colorbar-gradient" style={gradientStyle} />
+      <div className="colorbar-gradient" style={gradientStyle}>
+        {thresholdPos !== null && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '-2px',
+              bottom: '-2px',
+              left: `${thresholdPos}%`,
+              width: '2px',
+              background: '#f59e0b',
+              boxShadow: '0 0 6px #f59e0b',
+              pointerEvents: 'none',
+            }}
+            title="INCOIS 50 kJ/cm² Rapid Cyclone Intensification Threshold"
+          />
+        )}
+      </div>
       <div className="colorbar-ticks">
         {ticks.map((tick, i) => (
           <span
@@ -64,3 +107,4 @@ export default function Colorbar({ variable, vMin, vMax }: ColorbarProps) {
     </div>
   );
 }
+

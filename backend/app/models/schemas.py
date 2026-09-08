@@ -124,3 +124,60 @@ class HealthResponse(BaseModel):
     argo_data_loaded: bool
     model_info: Optional[DatasetInfo] = None
     argo_info: Optional[dict] = None
+
+
+class HeatPotentialStatistics(BaseModel):
+    """Aggregated statistical telemetry for Tropical Cyclone Heat Potential."""
+    tchp_min: float
+    tchp_max: float
+    tchp_mean: float
+    d26_min: float
+    d26_max: float
+    d26_mean: float
+    sst_min: float
+    sst_max: float
+    sst_mean: float
+    high_risk_cells: int
+    high_risk_percentage: float
+    cyclone_intensification_threshold: float = 50.0
+
+
+class HeatPotentialMetadata(BaseModel):
+    """Metadata describing the spatial bounds and scientific formula."""
+    time_index: int
+    lat_min: float
+    lat_max: float
+    lon_min: float
+    lon_max: float
+    width: int
+    height: int
+    formula: str
+    provenance: str
+    unit: str = "kJ/cm^2"
+
+
+class HeatPotentialResponse(BaseModel):
+    """2D spatial grid response for Tropical Cyclone Heat Potential and Marine Heatwaves."""
+    metadata: HeatPotentialMetadata
+    statistics: HeatPotentialStatistics
+    lats: List[float]
+    lons: List[float]
+    tchp: List[List[Optional[float]]]
+    d26: List[List[Optional[float]]]
+    mhw_category: List[List[Optional[int]]]
+
+
+class HeatPotentialPoint(BaseModel):
+    """Point inspection result for a single geographic coordinate."""
+    latitude: float
+    longitude: float
+    tchp: float
+    d26: float
+    sst: float
+    mhw_category: int
+    mhw_label: str
+    cyclone_risk: str
+    high_risk_flag: bool
+    unit: str = "kJ/cm^2"
+    formula: str
+

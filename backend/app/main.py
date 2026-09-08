@@ -4,7 +4,7 @@ Main entry point. Loads datasets on startup via lifespan,
 registers routers, and serves the API.
 """
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 import logging
@@ -16,6 +16,8 @@ from app.services.argo_service import ArgoService
 from app.services.anomaly_service import AnomalyService
 from app.services.cache_service import CacheService
 from app.routers import model_data, observations, comparison, anomaly, analytics
+from app.models import schemas
+
 
 settings = get_settings()
 logging.basicConfig(level=logging.DEBUG if settings.debug else logging.INFO)
@@ -101,6 +103,31 @@ app.include_router(observations.router)
 app.include_router(comparison.router)
 app.include_router(anomaly.router)
 app.include_router(analytics.router)
+
+
+@app.get("/api/v1/analytics/heat-potential", response_model=schemas.HeatPotentialResponse, tags=["Analytics & Spatial Intelligence"])
+def heat_potential_v1_alias(
+    request: Request,
+    time_index: int = Query(default=0, ge=0),
+    lat_min: float = Query(default=0.0, ge=0.0, le=28.0),
+    lat_max: float = Query(default=28.0, ge=0.0, le=28.0),
+    lon_min: float = Query(default=60.0, ge=60.0, le=100.0),
+    lon_max: float = Query(default=100.0, ge=60.0, le=100.0),
+):
+    """Direct alias for /api/analytics/heat-potential adhering to v1 spec."""
+    return analytics.calculate_heat_potential(request, time_index, lat_min, lat_max, lon_min, lon_max)
+
+
+@app.get("/api/v1/analytics/heat-potential/point", response_model=schemas.HeatPotentialPoint, tags=["Analytics & Spatial Intelligence"])
+def heat_potential_point_v1_alias(
+    request: Request,
+    lat: float = Query(..., ge=0.0, le=28.0),
+    lon: float = Query(..., ge=60.0, le=100.0),
+    time_index: int = Query(default=0, ge=0),
+):
+    """Point inspection alias for HUD card readout."""
+    return analytics.inspect_heat_potential_point(request, lat, lon, time_index)
+
 
 
 def health_payload() -> dict:

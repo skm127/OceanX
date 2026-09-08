@@ -29,8 +29,17 @@ import ProductModeSelector, { type ProductMode } from './components/Controls/Pro
 import { useOceanData } from './hooks/useOceanData';
 import { useCurrentVectors } from './hooks/useCurrentVectors';
 import { useArgoData } from './hooks/useArgoData';
-import { getModelProfile, getArgoProfile, getAnomalySummary, getAllObservations } from './services/api';
-import type { AnomalyFleetSummary } from './types';
+import {
+  getModelProfile,
+  getArgoProfile,
+  getAnomalySummary,
+  getAllObservations,
+  getHeatPotential,
+  inspectHeatPotentialPoint,
+} from './services/api';
+import type { AnomalyFleetSummary, HeatPotentialPoint } from './types';
+import type { OceanSliceData } from './hooks/useOceanData';
+
 import {
   getSectorCameraPosition,
   latLonToVector3,
@@ -38,11 +47,13 @@ import {
 } from './utils/coordinates';
 import './App.css';
 
+const TCHPInspectorCard = lazy(() => import('./components/Panels/TCHPInspectorCard'));
 const ComparisonPanel = lazy(() => import('./components/Panels/ComparisonPanel'));
 const MissionBriefingModal = lazy(() => import('./components/Panels/MissionBriefingModal'));
 const VerticalProfileHUD = lazy(() => import('./components/Controls/VerticalProfileHUD'));
 const OceanDossierModal = lazy(() => import('./components/Panels/OceanDossierModal'));
 const RegionAnalysisModal = lazy(() => import('./components/Panels/RegionAnalysisModal'));
+
 const TransectModal = lazy(() => import('./components/Panels/TransectModal'));
 const GlobalSearchModal = lazy(() => import('./components/Panels/GlobalSearchModal'));
 const AiAnalystModal = lazy(() => import('./components/Panels/AiAnalystModal'));
@@ -132,8 +143,46 @@ function App() {
   const [showArgo, setShowArgo] = useState(true);
   const [showSST, setShowSST] = useState(false);
   const [showCyclones, setShowCyclones] = useState(true);
+  const [showTCHP, setShowTCHP] = useState<boolean>(false);
+  const [tchpSliceData, setTchpSliceData] = useState<OceanSliceData | null>(null);
+  const [tchpPointData, setTchpPointData] = useState<HeatPotentialPoint | null>(null);
   const [showVolumetricBlock, setShowVolumetricBlock] = useState(true);
   const [verticalExaggeration, setVerticalExaggeration] = useState(1.0);
+
+  // Fetch TCHP 2D grid whenever showTCHP is active or timeIndex changes
+  useEffect(() => {
+    if (!showTCHP) return;
+    getHeatPotential({ time_index: timeIndex })
+      .then((res) => {
+        if (!res) return;
+        const { metadata, statistics, tchp } = res;
+        const width = metadata.width;
+        const height = metadata.height;
+        const flatValues = new Float32Array(width * height);
+        for (let r = 0; r < height; r++) {
+          for (let c = 0; c < width; c++) {
+            const v = tchp[r]?.[c];
+            flatValues[r * width + c] = v !== null && v !== undefined ? v : -9999;
+          }
+        }
+        setTchpSliceData({
+          variable: 'tchp',
+          depth: 0,
+          latMin: metadata.lat_min,
+          latMax: metadata.lat_max,
+          lonMin: metadata.lon_min,
+          lonMax: metadata.lon_max,
+          width,
+          height,
+          vMin: 0,
+          vMax: Math.max(100, statistics.tchp_max || 100),
+          values: flatValues,
+        });
+      })
+      .catch((err) => console.warn('Failed to fetch TCHP data', err));
+
+  }, [showTCHP, timeIndex]);
+
 
   // Dynamic Fleet Anomaly Intelligence & Sensor Network Counters
   const [anomalySummary, setAnomalySummary] = useState<AnomalyFleetSummary | null>(null);
@@ -273,6 +322,22 @@ function App() {
     setProbedCoord(coord);
     setSelectedProfileId(null);
     loadProfileForLocation(coord.lat, coord.lon);
+    if (showTCHP) {
+      inspectHeatPotentialPoint({ lat: coord.lat, lon: coord.lon, time_index: timeIndex })
+        .then(setTchpPointData)
+        .catch(() => {});
+    }
+  };
+
+  // Quick preset: Bay of Bengal Cyclone Season View (12°N, 88°E, Depth 0m, TCHP active)
+  const handleCycloneSeasonView = () => {
+    handleSelectSector('bay_of_bengal');
+    setTargetCameraPos(getSectorCameraPosition('bay_of_bengal'));
+    setDepth(0);
+    setShowTCHP(true);
+    inspectHeatPotentialPoint({ lat: 14.0, lon: 88.0, time_index: timeIndex })
+      .then(setTchpPointData)
+      .catch(() => {});
   };
 
   // Ocean surface right-click -> Ocean Region Dossier (PRD §15)
@@ -280,6 +345,7 @@ function App() {
     setDossierCoord(coord);
     setProbedCoord(coord);
   };
+
 
   // Start transect from a specific coordinate
   const handleStartTransectFromHere = (lat: number, lon: number) => {
@@ -576,6 +642,7 @@ function App() {
           showArgo={showArgo}
           showSST={showSST}
           showCyclones={showCyclones}
+          showTCHP={showTCHP}
           showVolumetricBlock={showVolumetricBlock}
           verticalExaggeration={verticalExaggeration}
           onVariableChange={setVariable}
@@ -583,6 +650,12 @@ function App() {
           onToggleArgo={() => setShowArgo((visible) => !visible)}
           onToggleSST={() => setShowSST((visible) => !visible)}
           onToggleCyclones={() => setShowCyclones((visible) => !visible)}
+          onToggleTCHP={() => {
+            const next = !showTCHP;
+            setShowTCHP(next);
+            if (!next) setTchpPointData(null);
+          }}
+          onCycloneSeasonView={handleCycloneSeasonView}
           onToggleVolumetricBlock={() => setShowVolumetricBlock((visible) => !visible)}
           onVerticalExaggerationChange={setVerticalExaggeration}
           onOpacityChange={setOceanOpacity}
@@ -623,7 +696,7 @@ function App() {
 
         {/* 3D Globe with continents, ocean raster, currents, and Argo markers */}
         <Globe
-          sliceData={sliceData}
+          sliceData={showTCHP && tchpSliceData ? tchpSliceData : sliceData}
           currentVectors={vectors}
           currentSpeedMin={speedMin}
           currentSpeedMax={speedMax}
@@ -643,6 +716,7 @@ function App() {
           onContextMenuCoordinate={handleContextMenuCoordinate}
           onCameraFlightComplete={() => setTargetCameraPos(null)}
         />
+
 
         {/* Floating Vertical Profile Sounding HUD (Image 1) */}
         {profileHudData.isOpen && (
@@ -889,13 +963,39 @@ function App() {
         )}
 
         {/* Colorbar scale legend */}
-        {sliceData && (
+        {showTCHP && tchpSliceData ? (
+          <Colorbar
+            variable="tchp"
+            vMin={0}
+            vMax={tchpSliceData.vMax}
+          />
+        ) : sliceData ? (
           <Colorbar
             variable={variable}
             vMin={sliceData.vMin}
             vMax={sliceData.vMax}
           />
+        ) : null}
+
+        {/* TCHP & Marine Heatwave Inspection HUD Card */}
+        {showTCHP && tchpPointData && (
+          <Suspense fallback={null}>
+            <TCHPInspectorCard
+              data={tchpPointData}
+              onClose={() => setTchpPointData(null)}
+              onOpenTransect={() => {
+                setTransectLine({
+                  lat1: Math.max(0, tchpPointData.latitude - 3),
+                  lon1: Math.max(60, tchpPointData.longitude - 3),
+                  lat2: Math.min(28, tchpPointData.latitude + 3),
+                  lon2: Math.min(100, tchpPointData.longitude + 3),
+                });
+                setTransectModalOpen(true);
+              }}
+            />
+          </Suspense>
         )}
+
 
         {/* Zero-network 60 FPS in-memory Hover Sounding HUD with Citizen/Scientist dual-lens */}
         <HoverSounderHUD

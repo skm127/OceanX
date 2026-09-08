@@ -15,6 +15,7 @@ interface LayerRailProps {
   showArgo: boolean;
   showSST: boolean;
   showCyclones: boolean;
+  showTCHP?: boolean;
   showVolumetricBlock?: boolean;
   verticalExaggeration?: number;
   onVariableChange: (v: OceanVariable) => void;
@@ -22,6 +23,8 @@ interface LayerRailProps {
   onToggleArgo: () => void;
   onToggleSST: () => void;
   onToggleCyclones: () => void;
+  onToggleTCHP?: () => void;
+  onCycloneSeasonView?: () => void;
   onToggleVolumetricBlock?: () => void;
   onVerticalExaggerationChange?: (ex: number) => void;
   onOpacityChange: (op: number) => void;
@@ -39,6 +42,7 @@ export const LayerRail: React.FC<LayerRailProps> = ({
   showArgo,
   showSST,
   showCyclones,
+  showTCHP = false,
   showVolumetricBlock = true,
   verticalExaggeration = 1.0,
   onVariableChange,
@@ -46,6 +50,8 @@ export const LayerRail: React.FC<LayerRailProps> = ({
   onToggleArgo,
   onToggleSST,
   onToggleCyclones,
+  onToggleTCHP = () => {},
+  onCycloneSeasonView,
   onToggleVolumetricBlock = () => {},
   onVerticalExaggerationChange = () => {},
   onOpacityChange,
@@ -54,6 +60,7 @@ export const LayerRail: React.FC<LayerRailProps> = ({
   isOpen,
   onToggleOpen,
 }) => {
+
   const [modelExpanded, setModelExpanded] = useState(true);
   const [obsExpanded, setObsExpanded] = useState(true);
   const [satExpanded, setSatExpanded] = useState(false);
@@ -99,7 +106,18 @@ export const LayerRail: React.FC<LayerRailProps> = ({
             >
               ⟂ TRANSECT
             </button>
+            {onCycloneSeasonView && (
+              <button
+                className="rail-tool-btn cyclone-btn"
+                onClick={onCycloneSeasonView}
+                title="Bay of Bengal Cyclone Season View (Pan to 12°N, 88°E, Depth 0m, Enable TCHP)"
+                style={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.4)' }}
+              >
+                🌀 CYCLONE
+              </button>
+            )}
           </div>
+
 
           {/* Opacity Control */}
           <div className="rail-slider-group">
@@ -291,9 +309,22 @@ export const LayerRail: React.FC<LayerRailProps> = ({
                   <span className="feed-label">Cyclone Track Hazards</span>
                   <span className="feed-badge red">IMD/JTWC</span>
                 </label>
+
+                <label
+                  className={`feed-item ${showTCHP ? 'active' : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showTCHP}
+                    onChange={onToggleTCHP}
+                  />
+                  <span className="feed-label">Cyclone Heat Potential (TCHP)</span>
+                  <span className="feed-badge orange">TCHP &gt; 50</span>
+                </label>
               </div>
             )}
           </div>
+
         </div>
       )}
     </aside>

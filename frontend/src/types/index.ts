@@ -262,4 +262,57 @@ export interface AiAnalystResponse {
   recommendations: string;
 }
 
+export interface HeatPotentialStatistics {
+  tchp_min: number;
+  tchp_max: number;
+  tchp_mean: number;
+  d26_min: number;
+  d26_max: number;
+  d26_mean: number;
+  sst_min: number;
+  sst_max: number;
+  sst_mean: number;
+  high_risk_cells: number;
+  high_risk_percentage: number;
+  cyclone_intensification_threshold: number;
+}
+
+export interface HeatPotentialMetadata {
+  time_index: number;
+  lat_min: number;
+  lat_max: number;
+  lon_min: number;
+  lon_max: number;
+  width: number;
+  height: number;
+  formula: string;
+  provenance: string;
+  unit: string;
+}
+
+export interface HeatPotentialResponse {
+  metadata: HeatPotentialMetadata;
+  statistics: HeatPotentialStatistics;
+  lats: number[];
+  lons: number[];
+  tchp: (number | null)[][];
+  d26: (number | null)[][];
+  mhw_category: (number | null)[][];
+}
+
+export interface HeatPotentialPoint {
+  latitude: number;
+  longitude: number;
+  tchp: number;
+  d26: number;
+  sst: number;
+  mhw_category: number;
+  mhw_label: string;
+  cyclone_risk: string;
+  high_risk_flag: boolean;
+  unit: string;
+  formula: string;
+}
+
+
 
