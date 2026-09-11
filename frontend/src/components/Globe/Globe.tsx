@@ -1,14 +1,21 @@
 /**
  * 3D Globe component using @react-three/fiber.
- * Inspired by OSIRIS (osirisai.live) / Palantir command & control aesthetic.
- * Renders NASA Blue Marble Earth, feather-blended ocean intelligence layers,
+ * Renders NASA Blue Marble Earth with Fresnel atmospheric rim glow,
+ * night-side city lights, cinematic sun lighting with day/night terminator,
  * tactical corner reconnaissance brackets, and active in-situ telemetry beacons.
+ *
+ * Visual design references:
+ * - NASA Worldview (worldview.earthdata.nasa.gov)
+ * - Palantir Gotham C2 displays
+ * - Google Earth Studio cinematic mode
  */
-import React, { useMemo, Suspense } from 'react';
+import React, { useMemo, useRef, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { latLonToVector3, getBayOfBengalCameraPosition, GLOBE_RADIUS } from '../../utils/coordinates';
+import AtmosphereShader from './AtmosphereShader';
+import NightLights from './NightLights';
 import OceanDataLayer from './OceanDataLayer';
 import CurrentVectors, { type CurrentVector } from './CurrentVectors';
 import ArgoMarkers from './ArgoMarkers';
@@ -49,7 +56,7 @@ function EarthFallback() {
   );
 }
 
-/** Earth core mesh with enhanced Google Earth-inspired rendering */
+/** Enhanced Earth mesh with satellite textures and improved material */
 function EarthMesh() {
   const [colorMap, specularMap, normalMap] = useTexture([
     '/textures/earth_atmos_2048.jpg',
@@ -58,47 +65,21 @@ function EarthMesh() {
   ]);
 
   colorMap.colorSpace = THREE.SRGBColorSpace;
+  colorMap.anisotropy = 8;
 
   return (
-    <group>
-      {/* Core globe with enhanced satellite imagery */}
-      <mesh>
-        <sphereGeometry args={[GLOBE_RADIUS, 96, 96]} />
-        <meshStandardMaterial
-          map={colorMap}
-          roughnessMap={specularMap}
-          normalMap={normalMap}
-          normalScale={new THREE.Vector2(1.2, 1.2)}
-          roughness={0.55}
-          metalness={0.15}
-          envMapIntensity={1.2}
-        />
-      </mesh>
-
-      {/* Enhanced atmospheric glow with multiple layers */}
-      <mesh>
-        <sphereGeometry args={[GLOBE_RADIUS * 1.025, 64, 64]} />
-        <meshBasicMaterial
-          color="#4fc3f7"
-          transparent
-          opacity={0.08}
-          side={THREE.BackSide}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-
-      {/* Outer atmospheric rim */}
-      <mesh>
-        <sphereGeometry args={[GLOBE_RADIUS * 1.035, 48, 48]} />
-        <meshBasicMaterial
-          color="#0288d1"
-          transparent
-          opacity={0.04}
-          side={THREE.BackSide}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-    </group>
+    <mesh renderOrder={1}>
+      <sphereGeometry args={[GLOBE_RADIUS, 128, 128]} />
+      <meshStandardMaterial
+        map={colorMap}
+        roughnessMap={specularMap}
+        normalMap={normalMap}
+        normalScale={new THREE.Vector2(1.6, 1.6)}
+        roughness={0.45}
+        metalness={0.08}
+        envMapIntensity={1.5}
+      />
+    </mesh>
   );
 }
 
@@ -110,35 +91,84 @@ function Earth() {
   );
 }
 
-/** Subtle lat/lon coordinate grid lines */
+/**
+ * Cinematic sun that slowly orbits the scene, creating a natural
+ * day/night terminator across the globe. The sun direction vector
+ * is shared with NightLights to synchronize city glow appearance.
+ */
+function CinematicSun({ sunDirRef }: { sunDirRef: React.MutableRefObject<THREE.Vector3> }) {
+  const lightRef = useRef<THREE.DirectionalLight>(null);
+
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    // Slow orbit: completes one revolution in ~200 seconds
+    const angle = t * 0.031;
+    const x = Math.cos(angle) * 18;
+    const z = Math.sin(angle) * 18;
+    const y = 6 + Math.sin(angle * 0.5) * 3;
+
+    if (lightRef.current) {
+      lightRef.current.position.set(x, y, z);
+    }
+
+    // Update shared sun direction for NightLights shader
+    sunDirRef.current.set(x, y, z).normalize();
+  });
+
+  return (
+    <>
+      <directionalLight
+        ref={lightRef}
+        position={[18, 6, 12]}
+        intensity={2.2}
+        color="#fff8f0"
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+      />
+      {/* Cool fill light from opposite hemisphere */}
+      <directionalLight position={[-10, -3, -8]} intensity={0.35} color="#4fc3f7" />
+    </>
+  );
+}
+
+/** Subtle lat/lon coordinate grid lines with cleaner styling */
 function GridLines() {
   const material = useMemo(
     () =>
-      new THREE.LineBasicMaterial({
-        color: '#0284c7',
-        opacity: 0.12,
+      new THREE.LineDashedMaterial({
+        color: '#38bdf8',
+        opacity: 0.09,
         transparent: true,
+        dashSize: 0.06,
+        gapSize: 0.04,
       }),
     []
   );
 
   const lines = useMemo(() => {
     const group: React.ReactNode[] = [];
-    for (let lat = -80; lat <= 80; lat += 10) {
+    // Latitude lines every 15° for cleaner look
+    for (let lat = -75; lat <= 75; lat += 15) {
       const points: THREE.Vector3[] = [];
-      for (let lon = -180; lon <= 180; lon += 4) {
-        points.push(latLonToVector3(lat, lon, GLOBE_RADIUS + 0.002));
+      for (let lon = -180; lon <= 180; lon += 3) {
+        points.push(latLonToVector3(lat, lon, GLOBE_RADIUS + 0.003));
       }
       const geo = new THREE.BufferGeometry().setFromPoints(points);
-      group.push(<primitive key={`lat-${lat}`} object={new THREE.Line(geo, material)} />);
+      const line = new THREE.Line(geo, material);
+      line.computeLineDistances();
+      group.push(<primitive key={`lat-${lat}`} object={line} />);
     }
-    for (let lon = -180; lon < 180; lon += 10) {
+    // Longitude lines every 15°
+    for (let lon = -180; lon < 180; lon += 15) {
       const points: THREE.Vector3[] = [];
-      for (let lat = -90; lat <= 90; lat += 4) {
-        points.push(latLonToVector3(lat, lon, GLOBE_RADIUS + 0.002));
+      for (let lat = -90; lat <= 90; lat += 3) {
+        points.push(latLonToVector3(lat, lon, GLOBE_RADIUS + 0.003));
       }
       const geo = new THREE.BufferGeometry().setFromPoints(points);
-      group.push(<primitive key={`lon-${lon}`} object={new THREE.Line(geo, material)} />);
+      const line = new THREE.Line(geo, material);
+      line.computeLineDistances();
+      group.push(<primitive key={`lon-${lon}`} object={line} />);
     }
     return group;
   }, [material]);
@@ -160,10 +190,12 @@ function TacticalSurveillanceGrid() {
 
   const borderMaterial = useMemo(
     () =>
-      new THREE.LineBasicMaterial({
-        color: '#0284c7',
-        opacity: 0.35,
+      new THREE.LineDashedMaterial({
+        color: '#0ea5e9',
+        opacity: 0.3,
         transparent: true,
+        dashSize: 0.08,
+        gapSize: 0.04,
       }),
     []
   );
@@ -207,10 +239,16 @@ function TacticalSurveillanceGrid() {
     return { bracketGeo: bGeo, borderGeo: pGeo };
   }, []);
 
+  const borderLine = useMemo(() => {
+    const line = new THREE.Line(borderGeo, borderMaterial);
+    line.computeLineDistances();
+    return line;
+  }, [borderGeo, borderMaterial]);
+
   return (
     <group>
       <primitive object={new THREE.LineSegments(bracketGeo, bracketMaterial)} />
-      <primitive object={new THREE.Line(borderGeo, borderMaterial)} />
+      <primitive object={borderLine} />
     </group>
   );
 }
@@ -246,31 +284,147 @@ function CameraLerpController({
   return null;
 }
 
-/** 3D Pulsing Tactical Target Reticle for Probed Coordinate */
+/**
+ * Tactical crosshair probe reticle with rotating outer ring,
+ * scanning sweepline, and radial anchor lines.
+ */
 function ProbeReticle({ coordinate }: { coordinate: { lat: number; lon: number } }) {
-  const pos = latLonToVector3(coordinate.lat, coordinate.lon, GLOBE_RADIUS + 0.015);
-  const ringRef = React.useRef<THREE.Mesh>(null);
+  const pos = latLonToVector3(coordinate.lat, coordinate.lon, GLOBE_RADIUS + 0.016);
+  const outerRingRef = useRef<THREE.Mesh>(null);
+  const sweepRef = useRef<THREE.Mesh>(null);
+  const pulseRingRef = useRef<THREE.Mesh>(null);
+
+  // Orient the reticle to face outward from globe surface
+  const orientation = useMemo(() => {
+    const normal = pos.clone().normalize();
+    const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+    return new THREE.Euler().setFromQuaternion(quat);
+  }, [pos]);
 
   useFrame(({ clock }) => {
-    if (ringRef.current) {
-      const t = clock.getElapsedTime();
-      const scale = 1.0 + 0.25 * Math.sin(t * 5);
-      ringRef.current.scale.set(scale, scale, scale);
+    const t = clock.getElapsedTime();
+
+    // Rotating outer targeting ring (2 RPM)
+    if (outerRingRef.current) {
+      outerRingRef.current.rotation.z = t * 0.8;
+    }
+
+    // Scanning sweepline rotation (faster)
+    if (sweepRef.current) {
+      sweepRef.current.rotation.z = -t * 2.5;
+    }
+
+    // Pulsing expansion ring
+    if (pulseRingRef.current) {
+      const pulse = (t * 1.2) % 2.0;
+      const scale = 1.0 + pulse * 0.8;
+      pulseRingRef.current.scale.set(scale, scale, scale);
+      const mat = pulseRingRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = Math.max(0, 0.6 - pulse * 0.3);
     }
   });
 
+  // Create the scanning wedge (sweepline) geometry
+  const sweepGeo = useMemo(() => {
+    const shape = new THREE.Shape();
+    const angle = Math.PI / 8; // 22.5° wedge
+    shape.moveTo(0, 0);
+    const segments = 12;
+    for (let i = 0; i <= segments; i++) {
+      const a = -angle / 2 + (angle * i) / segments;
+      shape.lineTo(Math.cos(a) * 0.04, Math.sin(a) * 0.04);
+    }
+    shape.lineTo(0, 0);
+    return new THREE.ShapeGeometry(shape);
+  }, []);
+
+  // Crosshair lines (4 radial arms)
+  const crosshairLines = useMemo(() => {
+    const points: THREE.Vector3[] = [];
+    const innerR = 0.018;
+    const outerR = 0.05;
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * Math.PI) / 2;
+      points.push(
+        new THREE.Vector3(Math.cos(angle) * innerR, Math.sin(angle) * innerR, 0),
+        new THREE.Vector3(Math.cos(angle) * outerR, Math.sin(angle) * outerR, 0)
+      );
+    }
+    return new THREE.BufferGeometry().setFromPoints(points);
+  }, []);
+
   return (
-    <group position={pos}>
-      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.025, 0.035, 24]} />
-        <meshBasicMaterial color="#00f0ff" transparent opacity={0.9} side={THREE.DoubleSide} />
+    <group position={pos} rotation={orientation}>
+      {/* Rotating outer segmented targeting ring */}
+      <mesh ref={outerRingRef}>
+        <ringGeometry args={[0.038, 0.044, 32, 1, 0, Math.PI * 1.5]} />
+        <meshBasicMaterial color="#00f0ff" transparent opacity={0.85} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
+
+      {/* Inner solid ring */}
       <mesh>
-        <sphereGeometry args={[0.012, 12, 12]} />
+        <ringGeometry args={[0.015, 0.018, 24]} />
+        <meshBasicMaterial color="#00f0ff" transparent opacity={0.7} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+
+      {/* Scanning sweepline wedge */}
+      <mesh ref={sweepRef} geometry={sweepGeo}>
+        <meshBasicMaterial color="#00f0ff" transparent opacity={0.2} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+
+      {/* Pulsing expansion ring */}
+      <mesh ref={pulseRingRef}>
+        <ringGeometry args={[0.04, 0.045, 32]} />
+        <meshBasicMaterial color="#38bdf8" transparent opacity={0.5} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+
+      {/* Crosshair radial arms */}
+      <primitive
+        object={new THREE.LineSegments(
+          crosshairLines,
+          new THREE.LineBasicMaterial({ color: '#00f0ff', transparent: true, opacity: 0.65 })
+        )}
+      />
+
+      {/* Center beacon dot */}
+      <mesh position={[0, 0, 0.002]}>
+        <sphereGeometry args={[0.008, 12, 12]} />
         <meshBasicMaterial color="#ffffff" />
       </mesh>
     </group>
   );
+}
+
+/**
+ * Idle auto-rotation controller.
+ * Slowly rotates the globe group when the user hasn't interacted for a few seconds.
+ * Pauses immediately on any orbit control interaction.
+ */
+function AutoRotation({ groupRef }: { groupRef: React.RefObject<THREE.Group | null> }) {
+  const idleTimeRef = useRef(0);
+  const lastCamPosRef = useRef(new THREE.Vector3());
+
+  useFrame(({ camera }, delta) => {
+    if (!groupRef.current) return;
+
+    // Detect if camera moved (user interaction)
+    const camMoved = camera.position.distanceTo(lastCamPosRef.current) > 0.001;
+    lastCamPosRef.current.copy(camera.position);
+
+    if (camMoved) {
+      idleTimeRef.current = 0;
+    } else {
+      idleTimeRef.current += delta;
+    }
+
+    // Start slow rotation after 4 seconds of idle
+    if (idleTimeRef.current > 4.0) {
+      const rampUp = Math.min(1, (idleTimeRef.current - 4.0) / 3.0);
+      groupRef.current.rotation.y += 0.0004 * rampUp * delta * 60;
+    }
+  });
+
+  return null;
 }
 
 /** Main Globe component */
@@ -296,6 +450,8 @@ export default function Globe({
   onCameraFlightComplete,
 }: GlobeProps) {
   const cameraPos = getBayOfBengalCameraPosition(6.8);
+  const sunDirRef = useRef(new THREE.Vector3(1, 0.3, 0.5).normalize());
+  const globeGroupRef = useRef<THREE.Group>(null);
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
@@ -306,83 +462,92 @@ export default function Globe({
           near: 0.1,
           far: 100,
         }}
-        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
+        gl={{
+          antialias: true,
+          alpha: true,
+          preserveDrawingBuffer: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.1,
+        }}
+        onCreated={({ gl }) => {
+          gl.outputColorSpace = THREE.SRGBColorSpace;
+        }}
       >
-        {/* Enhanced Google Earth-inspired lighting */}
-        <ambientLight intensity={0.4} color="#1a237e" />
-        <directionalLight 
-          position={[15, 8, 12]} 
-          intensity={1.8} 
-          color="#ffffff"
-          castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-        />
-        <directionalLight position={[-8, -4, -10]} intensity={0.5} color="#4fc3f7" />
-        <hemisphereLight 
-          args={['#87ceeb', '#1a237e', 0.3]} 
-        />
+        {/* Cinematic lighting with orbiting sun */}
+        <ambientLight intensity={0.25} color="#1a237e" />
+        <hemisphereLight args={['#87ceeb', '#0d1b2a', 0.25]} />
+        <CinematicSun sunDirRef={sunDirRef} />
 
-        {/* Space Starfield */}
-        <Stars radius={80} depth={50} count={4000} factor={4} fade speed={0.5} />
+        {/* Deep space starfield — cinematic density */}
+        <Stars radius={85} depth={60} count={8000} factor={4.5} fade speed={0.3} />
 
         {/* Dynamic Smooth Camera Transition */}
         <CameraLerpController targetPosition={targetCameraPos} onComplete={onCameraFlightComplete} />
 
-        {/* NASA Earth Globe */}
-        <Earth />
+        {/* Main globe group with idle auto-rotation */}
+        <group ref={globeGroupRef}>
+          <AutoRotation groupRef={globeGroupRef} />
 
-        {/* Lat/Lon Coordinate Graticule */}
-        <GridLines />
+          {/* NASA Earth Globe with enhanced textures */}
+          <Earth />
 
-        {/* Tactical Indian Ocean Surveillance Boundary Grid */}
-        <TacticalSurveillanceGrid />
+          {/* Fresnel atmospheric rim glow */}
+          <AtmosphereShader />
 
-        {/* Ocean Data Layer with soft edge feathering, click probe, and 60 FPS hover */}
-        {sliceData && (
-          <OceanDataLayer
-            data={sliceData}
-            opacity={oceanOpacity}
-            onProbe={onProbeCoordinate}
-            onContextMenu={onContextMenuCoordinate}
-            onHoverCoord={onHoverCoordinate}
-          />
-        )}
+          {/* NASA Earth at Night city lights on dark hemisphere */}
+          <NightLights sunDirection={sunDirRef.current} />
 
-        {/* Tactical Coordinate Probe Reticle */}
-        {probedCoordinate && <ProbeReticle coordinate={probedCoordinate} />}
+          {/* Lat/Lon Coordinate Graticule — dashed style */}
+          <GridLines />
 
-        {/* 3D Subsurface Water Column Depth Slabs matching Image 1 & 2 */}
-        {probedCoordinate && sliceData && (
-          <SubsurfaceVolumeBlock
-            coordinate={probedCoordinate}
-            depthLevels={depthLevels}
-            currentDepth={sliceData.depth}
-            variable={sliceData.variable}
-            verticalExaggeration={verticalExaggeration}
-            visible={showVolumetricBlock}
-          />
-        )}
+          {/* Tactical Indian Ocean Surveillance Boundary Grid */}
+          <TacticalSurveillanceGrid />
 
+          {/* Ocean Data Layer with soft edge feathering, click probe, and 60 FPS hover */}
+          {sliceData && (
+            <OceanDataLayer
+              data={sliceData}
+              opacity={oceanOpacity}
+              onProbe={onProbeCoordinate}
+              onContextMenu={onContextMenuCoordinate}
+              onHoverCoord={onHoverCoordinate}
+            />
+          )}
 
-        {/* 3D Current Vector Directional Cones */}
-        {showCurrents && (
-          <CurrentVectors
-            vectors={currentVectors}
-            speedMin={currentSpeedMin}
-            speedMax={currentSpeedMax}
-            visible={showCurrents}
-          />
-        )}
+          {/* Tactical Coordinate Probe Reticle */}
+          {probedCoordinate && <ProbeReticle coordinate={probedCoordinate} />}
 
-        {/* In-Situ Argo Buoys with Radar Sonar Pings */}
-        {argoProfiles.length > 0 && onSelectArgo && (
-          <ArgoMarkers
-            profiles={argoProfiles}
-            selectedId={selectedArgoId}
-            onSelect={onSelectArgo}
-          />
-        )}
+          {/* 3D Subsurface Water Column Depth Slabs */}
+          {probedCoordinate && sliceData && (
+            <SubsurfaceVolumeBlock
+              coordinate={probedCoordinate}
+              depthLevels={depthLevels}
+              currentDepth={sliceData.depth}
+              variable={sliceData.variable}
+              verticalExaggeration={verticalExaggeration}
+              visible={showVolumetricBlock}
+            />
+          )}
+
+          {/* 3D Current Vector Directional Cones */}
+          {showCurrents && (
+            <CurrentVectors
+              vectors={currentVectors}
+              speedMin={currentSpeedMin}
+              speedMax={currentSpeedMax}
+              visible={showCurrents}
+            />
+          )}
+
+          {/* In-Situ Argo Buoys with Radar Sonar Pings */}
+          {argoProfiles.length > 0 && onSelectArgo && (
+            <ArgoMarkers
+              profiles={argoProfiles}
+              selectedId={selectedArgoId}
+              onSelect={onSelectArgo}
+            />
+          )}
+        </group>
 
         {/* Camera Controls with Dynamic Google Earth Pitch */}
         <OrbitControls

@@ -1,10 +1,13 @@
 /**
  * ArgoMarkers — Tactical 3D Interactive Target Beacons for Profiling Floats.
- * Inspired by OSIRIS / Palantir C2 design language.
- * Features sonar radar rings, beacon pulses, and non-intrusive hover tooltips.
+ * Features sonar radar rings, beacon pulses, outer glow halos on selection,
+ * floating platform ID labels on hover, and non-intrusive hover tooltips.
+ *
+ * Visual design: OSIRIS / Palantir C2 beacon language with additive glow sprites.
  */
 import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { latLonToVector3, GLOBE_RADIUS } from '../../utils/coordinates';
 import type { ArgoProfileSummary } from '../../types';
@@ -27,6 +30,7 @@ function SingleBuoy({
   const [hovered, setHovered] = useState(false);
   const beaconRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
   const pos = latLonToVector3(profile.latitude, profile.longitude, GLOBE_RADIUS + 0.02);
 
   // Float status mapping
@@ -55,6 +59,19 @@ function SingleBuoy({
       const beaconMat = beaconRef.current.material as THREE.MeshBasicMaterial;
       beaconMat.opacity = isSelected ? 1.0 : 0.4 + 0.6 * (blink > 0 ? 1 : 0);
     }
+
+    // Outer glow halo pulse on selection or hover
+    if (glowRef.current) {
+      const glowMat = glowRef.current.material as THREE.MeshBasicMaterial;
+      if (isSelected || hovered) {
+        const pulse = 0.25 + 0.15 * Math.sin(t * 4);
+        glowMat.opacity = pulse;
+        const s = 1.0 + 0.15 * Math.sin(t * 3);
+        glowRef.current.scale.set(s, s, s);
+      } else {
+        glowMat.opacity = 0;
+      }
+    }
   });
 
   const tetherGeo = useMemo(() => {
@@ -77,6 +94,11 @@ function SingleBuoy({
     return pos.clone().normalize().multiplyScalar(-0.075);
   }, [pos]);
 
+  // Compute outward-facing normal for label positioning
+  const labelOffset = useMemo(() => {
+    return pos.clone().normalize().multiplyScalar(0.07);
+  }, [pos]);
+
   return (
     <group position={pos}>
       {/* Subsurface Sounding Column Tether (0-2000m profiling descent) */}
@@ -84,6 +106,19 @@ function SingleBuoy({
       <mesh position={deepSensorPos}>
         <sphereGeometry args={[0.007, 8, 8]} />
         <meshBasicMaterial color={statusColor} transparent opacity={0.7} />
+      </mesh>
+
+      {/* Outer Glow Halo (visible on selection/hover) */}
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[0.055, 16, 16]} />
+        <meshBasicMaterial
+          color={isSelected ? '#38bdf8' : statusColor}
+          transparent
+          opacity={0}
+          side={THREE.FrontSide}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
       </mesh>
 
       {/* Radar Sonar Ping Ring */}
@@ -130,6 +165,22 @@ function SingleBuoy({
         <meshBasicMaterial visible={false} />
       </mesh>
 
+      {/* Floating Platform ID Label (billboard facing camera, shown on hover) */}
+      {(hovered || isSelected) && (
+        <Text
+          position={labelOffset}
+          fontSize={0.025}
+          color={isCritical ? '#fca5a5' : isWarning ? '#fde68a' : '#6ee7b7'}
+          anchorX="center"
+          anchorY="bottom"
+          outlineWidth={0.003}
+          outlineColor="#000000"
+          font={undefined}
+        >
+          {profile.platform_id}
+        </Text>
+      )}
+
       {/* Mathematically Honest Subsurface Thermal Plume (Proportional to Delta) */}
       {(isCritical || isWarning) && (
         <mesh position={pos.clone().normalize().multiplyScalar(-0.038)}>
@@ -174,7 +225,9 @@ function MooredBuoy3DMarker({
   isSelected: boolean;
   onSelect: (id: string) => void;
 }) {
+  const [hovered, setHovered] = useState(false);
   const ringRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
   const pos = latLonToVector3(buoy.lat, buoy.lon, GLOBE_RADIUS + 0.02);
 
   useFrame(({ clock }) => {
@@ -186,10 +239,36 @@ function MooredBuoy3DMarker({
       const mat = ringRef.current.material as THREE.MeshBasicMaterial;
       mat.opacity = Math.max(0, 0.6 - pingT / 1.6);
     }
+
+    if (glowRef.current) {
+      const t = clock.getElapsedTime();
+      const glowMat = glowRef.current.material as THREE.MeshBasicMaterial;
+      if (isSelected || hovered) {
+        glowMat.opacity = 0.2 + 0.1 * Math.sin(t * 4);
+      } else {
+        glowMat.opacity = 0;
+      }
+    }
   });
+
+  const labelOffset = useMemo(() => {
+    return pos.clone().normalize().multiplyScalar(0.06);
+  }, [pos]);
 
   return (
     <group position={pos}>
+      {/* Outer glow halo */}
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[0.045, 16, 16]} />
+        <meshBasicMaterial
+          color={buoy.warning ? '#ff9800' : '#ffc107'}
+          transparent
+          opacity={0}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
       {/* Mooring radar ping ring */}
       <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.02, 0.026, 24]} />
@@ -210,9 +289,11 @@ function MooredBuoy3DMarker({
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
+          setHovered(true);
           document.body.style.cursor = 'pointer';
         }}
         onPointerOut={() => {
+          setHovered(false);
           document.body.style.cursor = 'default';
         }}
       >
@@ -224,6 +305,22 @@ function MooredBuoy3DMarker({
           roughness={0.3}
         />
       </mesh>
+
+      {/* Floating label on hover */}
+      {(hovered || isSelected) && (
+        <Text
+          position={labelOffset}
+          fontSize={0.022}
+          color={buoy.warning ? '#fde68a' : '#fcd34d'}
+          anchorX="center"
+          anchorY="bottom"
+          outlineWidth={0.003}
+          outlineColor="#000000"
+          font={undefined}
+        >
+          {buoy.platform_id}
+        </Text>
+      )}
     </group>
   );
 }
@@ -235,8 +332,10 @@ function Glider3DMarker({
   isSelected: boolean;
   onSelect: (id: string) => void;
 }) {
+  const [hovered, setHovered] = useState(false);
   const gliderPos = latLonToVector3(16.0, 85.5, GLOBE_RADIUS + 0.02);
   const pulseRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
 
   useFrame(({ clock }) => {
     if (pulseRef.current) {
@@ -244,10 +343,36 @@ function Glider3DMarker({
       const scale = 1.0 + 0.3 * Math.sin(t * 3);
       pulseRef.current.scale.set(scale, scale, scale);
     }
+
+    if (glowRef.current) {
+      const t = clock.getElapsedTime();
+      const glowMat = glowRef.current.material as THREE.MeshBasicMaterial;
+      if (isSelected || hovered) {
+        glowMat.opacity = 0.2 + 0.1 * Math.sin(t * 4);
+      } else {
+        glowMat.opacity = 0;
+      }
+    }
   });
+
+  const labelOffset = useMemo(() => {
+    return gliderPos.clone().normalize().multiplyScalar(0.06);
+  }, [gliderPos]);
 
   return (
     <group position={gliderPos}>
+      {/* Outer glow halo */}
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[0.045, 16, 16]} />
+        <meshBasicMaterial
+          color="#34d399"
+          transparent
+          opacity={0}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
       <mesh
         ref={pulseRef}
         onClick={(e) => {
@@ -256,9 +381,11 @@ function Glider3DMarker({
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
+          setHovered(true);
           document.body.style.cursor = 'pointer';
         }}
         onPointerOut={() => {
+          setHovered(false);
           document.body.style.cursor = 'default';
         }}
       >
@@ -270,6 +397,22 @@ function Glider3DMarker({
           roughness={0.2}
         />
       </mesh>
+
+      {/* Floating label on hover */}
+      {(hovered || isSelected) && (
+        <Text
+          position={labelOffset}
+          fontSize={0.022}
+          color="#6ee7b7"
+          anchorX="center"
+          anchorY="bottom"
+          outlineWidth={0.003}
+          outlineColor="#000000"
+          font={undefined}
+        >
+          GLIDER-01
+        </Text>
+      )}
     </group>
   );
 }
