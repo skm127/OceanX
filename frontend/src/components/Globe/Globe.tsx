@@ -74,10 +74,10 @@ function EarthMesh() {
         map={colorMap}
         roughnessMap={specularMap}
         normalMap={normalMap}
-        normalScale={new THREE.Vector2(1.6, 1.6)}
-        roughness={0.45}
-        metalness={0.08}
-        envMapIntensity={1.5}
+        normalScale={new THREE.Vector2(1.2, 1.2)}
+        roughness={0.5}
+        metalness={0.05}
+        envMapIntensity={0.8}
       />
     </mesh>
   );
@@ -101,11 +101,12 @@ function CinematicSun({ sunDirRef }: { sunDirRef: React.MutableRefObject<THREE.V
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
-    // Slow orbit: completes one revolution in ~200 seconds
-    const angle = t * 0.031;
-    const x = Math.cos(angle) * 18;
-    const z = Math.sin(angle) * 18;
-    const y = 6 + Math.sin(angle * 0.5) * 3;
+    // Very slow orbit: nearly imperceptible, keeps Indian Ocean lit
+    // Base position illuminates lat ~14°N, lon ~78°E (Indian Peninsula)
+    const angle = t * 0.008; // ~13 minute revolution — practically static during demo
+    const x = Math.cos(angle) * 15 + 5;
+    const z = Math.sin(angle) * 10 + 8;
+    const y = 10 + Math.sin(angle * 0.3) * 2;
 
     if (lightRef.current) {
       lightRef.current.position.set(x, y, z);
@@ -119,15 +120,12 @@ function CinematicSun({ sunDirRef }: { sunDirRef: React.MutableRefObject<THREE.V
     <>
       <directionalLight
         ref={lightRef}
-        position={[18, 6, 12]}
-        intensity={2.2}
+        position={[20, 10, 8]}
+        intensity={2.4}
         color="#fff8f0"
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
       />
-      {/* Cool fill light from opposite hemisphere */}
-      <directionalLight position={[-10, -3, -8]} intensity={0.35} color="#4fc3f7" />
+      {/* Cool fill light from opposite hemisphere — prevents pure black shadows */}
+      <directionalLight position={[-10, -3, -8]} intensity={0.6} color="#90caf9" />
     </>
   );
 }
@@ -467,15 +465,15 @@ export default function Globe({
           alpha: true,
           preserveDrawingBuffer: true,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.1,
+          toneMappingExposure: 1.5,
         }}
         onCreated={({ gl }) => {
           gl.outputColorSpace = THREE.SRGBColorSpace;
         }}
       >
-        {/* Cinematic lighting with orbiting sun */}
-        <ambientLight intensity={0.25} color="#1a237e" />
-        <hemisphereLight args={['#87ceeb', '#0d1b2a', 0.25]} />
+        {/* Bright, clear lighting — Indian Ocean always well-lit */}
+        <ambientLight intensity={0.55} color="#e3f2fd" />
+        <hemisphereLight args={['#b3e5fc', '#1a237e', 0.45]} />
         <CinematicSun sunDirRef={sunDirRef} />
 
         {/* Deep space starfield — cinematic density */}

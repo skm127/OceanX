@@ -58,9 +58,9 @@ export default function AtmosphereShader() {
   const uniforms = useMemo(
     () => ({
       uGlowColor: { value: new THREE.Color('#4fc3f7') },
-      uGlowColor2: { value: new THREE.Color('#0d47a1') },
-      uIntensity: { value: 1.35 },
-      uPower: { value: 3.8 },
+      uGlowColor2: { value: new THREE.Color('#1565c0') },
+      uIntensity: { value: 1.6 },
+      uPower: { value: 3.2 },
       uTime: { value: 0.0 },
     }),
     []
