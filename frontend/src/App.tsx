@@ -66,6 +66,7 @@ const LearnStoryJourney = lazy(() => import('./components/Panels/LearnStoryJourn
 const DataManagerModal = lazy(() => import('./components/Panels/DataManagerModal'));
 const CoLocationModal = lazy(() => import('./components/Panels/CoLocationModal'));
 const SoundingStudioPage = lazy(() => import('./components/Panels/SoundingStudioPage'));
+import OceanGuideAgent from './components/OceanGuide/OceanGuideAgent';
 
 function App() {
   const {
@@ -118,8 +119,9 @@ function App() {
   const [explainMode, setExplainMode] = useState<ExplainMode>('citizen');
   const [hoverCoord, setHoverCoord] = useState<{ lat: number; lon: number } | null>(null);
   const [cameraPitch, setCameraPitch] = useState<number>(50);
-   const [provenanceOpen, setProvenanceOpen] = useState(false);
+  const [provenanceOpen, setProvenanceOpen] = useState(false);
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   // SAGAR-VIEW Product Mode & Co-Location Engine state
   const [productMode, setProductMode] = useState<ProductMode>('research');
@@ -423,6 +425,7 @@ function App() {
         setShowHotkeys(false);
         setBriefingOpen(false);
         setCoLocationOpen(false);
+        setGuideOpen(false);
       } else if (e.key === '1') {
         handleSelectSectorRef.current('all_india');
       } else if (e.key === '2') {
@@ -433,6 +436,8 @@ function App() {
         handleSelectSectorRef.current('anomaly_target');
       } else if (e.key === '5') {
         handleSelectSectorRef.current('equatorial');
+      } else if (e.key === 'g' || e.key === 'G') {
+        setGuideOpen((prev) => !prev);
       } else if (e.key === 'b' || e.key === 'B') {
         setBriefingOpen((prev) => !prev);
       } else if (e.key === 'c' || e.key === 'C') {
@@ -524,6 +529,17 @@ function App() {
               </button>
             );
           })()}
+
+          {/* Interactive Layman AI Ocean Guide */}
+          <button
+            className={`c2-badge ai-guide-top-btn ${guideOpen ? 'active' : ''}`}
+            onClick={() => setGuideOpen((prev) => !prev)}
+            title="Open Layman AI Ocean Guide (Key: G) — Plain-English translation of everything on screen"
+          >
+            <span className="btn-robot-icon">🤖</span>
+            <span>AI GUIDE</span>
+            <span className="guide-hint-badge">HELP</span>
+          </button>
 
           {/* Data Provenance & Methodology */}
           <button
@@ -1038,6 +1054,32 @@ function App() {
           variable={variable}
           depth={depth}
           explainMode={explainMode}
+        />
+
+        {/* Interactive Layman AI Ocean Guide Assistant */}
+        <OceanGuideAgent
+          isOpen={guideOpen}
+          onToggle={() => setGuideOpen((prev) => !prev)}
+          variable={variable}
+          depth={depth}
+          currentSector={currentSector}
+          selectedProfileId={selectedProfileId}
+          showCurrents={showCurrents}
+          showTCHP={showTCHP}
+          productMode={productMode}
+          probedCoord={probedCoord}
+          onSetVariable={setVariable}
+          onSetDepth={setDepth}
+          onSelectSector={handleSelectSector}
+          onToggleCurrents={() => setShowCurrents((v) => !v)}
+          onToggleTCHP={() => {
+            const next = !showTCHP;
+            setShowTCHP(next);
+            if (!next) setTchpPointData(null);
+          }}
+          onSelectArgo={handleSelectArgo}
+          onSetProductMode={handleProductModeChange}
+          onOpenTransect={() => setTransectModalOpen(true)}
         />
 
         {/* Error notification banner */}

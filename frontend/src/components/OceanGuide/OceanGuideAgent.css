@@ -1,0 +1,694 @@
+/* OceanGuideAgent.css — Interactive Layman AI Guide Styling */
+
+.ocean-guide-container {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: auto;
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+}
+
+/* ==========================================================================
+   Floating Minimized Trigger Pill
+   ========================================================================== */
+.guide-trigger-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.9) 100%);
+  border: 1.5px solid rgba(56, 189, 248, 0.6);
+  border-radius: 50px;
+  padding: 8px 18px 8px 10px;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.guide-trigger-pill:hover {
+  transform: translateY(-2px) scale(1.03);
+  border-color: #38bdf8;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.6);
+}
+
+.pill-avatar-wrap {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  background: radial-gradient(circle, #0284c7 0%, #0369a1 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+}
+
+.pill-avatar {
+  font-size: 20px;
+}
+
+.pill-pulse-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid #38bdf8;
+  animation: pillPulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  pointer-events: none;
+}
+
+@keyframes pillPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+.pill-text-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.pill-title {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #38bdf8;
+  text-transform: uppercase;
+}
+
+.pill-subtitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: #f1f5f9;
+}
+
+.pill-chevron {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+/* ==========================================================================
+   Expanded AI Assistant Window
+   ========================================================================== */
+.guide-panel {
+  width: 440px;
+  max-width: calc(100vw - 36px);
+  height: 580px;
+  max-height: calc(100vh - 130px);
+  background: rgba(11, 20, 38, 0.94);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 35px rgba(56, 189, 248, 0.25);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: panelSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes panelSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+.guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(15, 23, 42, 0.9);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.guide-header-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.guide-avatar-badge {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+}
+
+.guide-title-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.guide-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guide-title-row h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  font-family: var(--font-mono, monospace);
+}
+
+.layman-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.6);
+  color: #34d399;
+  letter-spacing: 0.08em;
+}
+
+.guide-subtitle {
+  margin: 0;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.guide-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guide-icon-btn {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.guide-icon-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+}
+
+.guide-icon-btn.speaking {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fca5a5;
+  animation: speakingPulse 1s infinite alternate;
+}
+
+@keyframes speakingPulse {
+  from { opacity: 0.8; }
+  to { opacity: 1; }
+}
+
+.guide-icon-btn.close-btn {
+  padding: 5px 8px;
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   Navigation Tabs
+   ========================================================================== */
+.guide-tabs {
+  display: flex;
+  background: rgba(15, 23, 42, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 4px 6px;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.guide-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.guide-tab {
+  flex: 1;
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.guide-tab:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.guide-tab.active {
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+/* ==========================================================================
+   Content Body
+   ========================================================================== */
+.guide-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Custom Scrollbar */
+.guide-body::-webkit-scrollbar {
+  width: 5px;
+}
+.guide-body::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.3);
+  border-radius: 4px;
+}
+
+/* Live Context Chip */
+.live-status-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.06em;
+  width: fit-content;
+}
+
+.live-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+  animation: liveDotBlink 1.5s infinite ease-in-out;
+}
+
+@keyframes liveDotBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ==========================================================================
+   Screen Cards List (Tab 1)
+   ========================================================================== */
+.screen-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.screen-card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.2s;
+}
+
+.screen-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-icon {
+  font-size: 16px;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.card-body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #cbd5e1;
+}
+
+.card-highlight {
+  display: flex;
+  align-items: center;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.card-action-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.card-action-btn:hover {
+  background: rgba(56, 189, 248, 0.3);
+  color: #ffffff;
+  transform: translateX(2px);
+}
+
+/* Quick Prompts */
+.quick-prompts-section {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prompts-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.prompts-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.prompt-chip {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  padding: 5px 10px;
+  font-size: 11px;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.prompt-chip:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Conversational Chat (Tab 2)
+   ========================================================================== */
+.chat-messages-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.chat-message-row {
+  display: flex;
+  width: 100%;
+}
+
+.chat-message-row.ai {
+  justify-content: flex-start;
+}
+
+.chat-message-row.user {
+  justify-content: flex-end;
+}
+
+.chat-bubble {
+  max-width: 86%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.chat-message-row.ai .chat-bubble {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #f1f5f9;
+  border-bottom-left-radius: 2px;
+}
+
+.chat-message-row.user .chat-bubble {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border-bottom-right-radius: 2px;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+.chat-bubble-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.bubble-action-btn {
+  margin-top: 8px;
+  background: rgba(56, 189, 248, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.6);
+  color: #38bdf8;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-block;
+  transition: all 0.15s;
+}
+
+.bubble-action-btn:hover {
+  background: rgba(56, 189, 248, 0.4);
+  color: #ffffff;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.chat-input {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 12px;
+  color: #f1f5f9;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.chat-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+
+.chat-send-btn {
+  background: #0284c7;
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  background: #0369a1;
+  transform: translateY(-1px);
+}
+
+.chat-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Tours Tab (Tab 3)
+   ========================================================================== */
+.tours-intro {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.tours-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tour-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tour-card:hover {
+  background: rgba(30, 58, 138, 0.35);
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.2);
+}
+
+.tour-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tour-icon {
+  font-size: 16px;
+}
+
+.tour-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.tour-desc {
+  margin: 0;
+  font-size: 11.5px;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.tour-start-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Glossary Tab (Tab 4)
+   ========================================================================== */
+.glossary-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.glossary-item {
+  background: rgba(15, 23, 42, 0.6);
+  border-left: 3px solid #38bdf8;
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.glossary-item h4 {
+  margin: 0 0 4px 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.glossary-item p {
+  margin: 0;
+  font-size: 11.5px;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 640px) {
+  .ocean-guide-container {
+    bottom: 80px;
+    right: 12px;
+  }
+  .guide-panel {
+    width: calc(100vw - 24px);
+    height: 480px;
+  }
+}
