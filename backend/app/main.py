@@ -64,6 +64,10 @@ async def lifespan(app: FastAPI):
     guide_service = GuideService()
     guide_service.initialize()
     
+    # Initialize Database (SQLite/Postgres)
+    from app.db import init_db
+    init_db()
+    
     # Initialize Live Feed Broadcaster
     from app.services.live_feed_service import LiveFeedBroadcaster
     live_feed_broadcaster = LiveFeedBroadcaster()

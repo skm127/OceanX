@@ -42,6 +42,40 @@ async def get_live_argo_fleet(request: Request):
 
     return await service.get_live_argo_network()
 
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from app.db import get_db
+from app.models.db_models import OceanTelemetryHistory
+from sqlalchemy import desc
+
+@router.get("/history")
+def get_telemetry_history(
+    limit: int = 24,
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve historical time-series of ocean telemetry.
+    Useful for charting trends (e.g. wave height over last 24 updates).
+    """
+    records = db.query(OceanTelemetryHistory).order_by(desc(OceanTelemetryHistory.timestamp_utc)).limit(limit).all()
+    
+    return {
+        "status": "success",
+        "count": len(records),
+        "data": [
+            {
+                "timestamp_utc": r.timestamp_utc.isoformat(),
+                "latitude": r.latitude,
+                "longitude": r.longitude,
+                "wave_height_m": r.wave_height_m,
+                "wave_period_s": r.wave_period_s,
+                "current_velocity_ms": r.current_velocity_ms,
+                "sea_surface_temp_c": r.sea_surface_temp_c
+            }
+            for r in records
+        ]
+    }
+
 import asyncio
 from sse_starlette.sse import EventSourceResponse
 import json
