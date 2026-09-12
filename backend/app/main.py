@@ -7,8 +7,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from dotenv import load_dotenv
 import logging
 import os
+
+# Load .env file for API keys (GEMINI_API_KEY, etc.)
+load_dotenv()
 
 from app.config import get_settings
 from app.services.netcdf_service import NetCDFService

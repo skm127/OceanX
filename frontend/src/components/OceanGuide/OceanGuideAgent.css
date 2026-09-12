@@ -472,6 +472,7 @@
   gap: 10px;
   overflow-y: auto;
   padding-right: 4px;
+  user-select: auto;
 }
 
 .chat-message-row {
@@ -549,6 +550,8 @@
   color: #f1f5f9;
   outline: none;
   transition: border-color 0.2s;
+  pointer-events: auto;
+  user-select: auto;
 }
 
 .chat-input:focus {

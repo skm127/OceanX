@@ -240,16 +240,16 @@ export const LayerRail: React.FC<LayerRailProps> = ({
                   <span className="feed-badge green">LIVE (8)</span>
                 </label>
 
-                <label className="feed-item disabled" title="Autonomous Glider feed standby">
-                  <input type="checkbox" disabled />
-                  <span className="feed-label muted">Ocean Gliders</span>
-                  <span className="feed-badge faint">STANDBY</span>
+                <label className={`feed-item ${showArgo ? 'active' : ''}`} title="Autonomous Glider feed">
+                  <input type="checkbox" checked={showArgo} onChange={onToggleArgo} />
+                  <span className="feed-label">Ocean Gliders</span>
+                  <span className="feed-badge green">LIVE (1)</span>
                 </label>
 
-                <label className="feed-item disabled" title="Moored buoy arrays standby">
-                  <input type="checkbox" disabled />
-                  <span className="feed-label muted">Moored Buoys (OMNI)</span>
-                  <span className="feed-badge faint">STANDBY</span>
+                <label className={`feed-item ${showArgo ? 'active' : ''}`} title="Moored buoy arrays">
+                  <input type="checkbox" checked={showArgo} onChange={onToggleArgo} />
+                  <span className="feed-label">Moored Buoys (OMNI)</span>
+                  <span className="feed-badge green">LIVE (3)</span>
                 </label>
               </div>
             )}
