@@ -64,6 +64,11 @@ async def lifespan(app: FastAPI):
     guide_service = GuideService()
     guide_service.initialize()
     
+    # Initialize Live Feed Broadcaster
+    from app.services.live_feed_service import LiveFeedBroadcaster
+    live_feed_broadcaster = LiveFeedBroadcaster()
+    live_feed_broadcaster.start(realtime_service)
+    
     # Store on app state for access in endpoints
     app.state.nc_service = nc_service
     app.state.argo_service = argo_service
@@ -71,15 +76,20 @@ async def lifespan(app: FastAPI):
     app.state.cache_service = cache_service
     app.state.realtime_service = realtime_service
     app.state.guide_service = guide_service
+    app.state.live_feed_broadcaster = live_feed_broadcaster
     app.state.settings = settings
     
     logger.info("🌊 OCEAN-X API started")
     
     yield
     
-    # Cleanup
-    nc_service.close()
-    argo_service.close()
+    await live_feed_broadcaster.shutdown()
+    await realtime_service.close()
+    
+    # Cleanup resources
+    if hasattr(nc_service, 'close'):
+        nc_service.close()
+    
     logger.info("🌊 OCEAN-X API shutdown")
 
 

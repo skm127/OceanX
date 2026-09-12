@@ -17,3 +17,4 @@ python-dotenv>=1.0
 google-generativeai>=0.8.0
 httpx>=0.27.0
 prometheus-fastapi-instrumentator
+apscheduler>=3.10.4

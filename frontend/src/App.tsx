@@ -70,6 +70,9 @@ const SoundingStudioPage = lazy(() => import('./components/Panels/SoundingStudio
 const RealtimePredictionModal = lazy(() => import('./components/Panels/RealtimePredictionModal'));
 import OceanGuideAgent from './components/OceanGuide/OceanGuideAgent';
 
+import { useLiveFeed } from './hooks/useLiveFeed';
+import { LiveConnectionIndicator } from './components/Controls/LiveConnectionIndicator';
+
 function App() {
   const {
     sliceData,
@@ -85,6 +88,9 @@ function App() {
     setDepth,
     setTimeIndex,
   } = useOceanData();
+
+  // Subscribe to SSE Live Feed
+  const liveFeed = useLiveFeed();
 
   const {
     vectors,
@@ -784,6 +790,11 @@ function App() {
           onSelect={handleSelectArgo}
           railOpen={layerRailOpen}
         />
+
+          <LiveConnectionIndicator 
+            status={liveFeed.connectionStatus} 
+            lastUpdated={liveFeed.lastUpdated} 
+          />
 
         {/* 3D Globe with continents, ocean raster, currents, and Argo markers */}
         <Globe

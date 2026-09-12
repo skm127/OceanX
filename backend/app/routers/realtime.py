@@ -41,3 +41,43 @@ async def get_live_argo_fleet(request: Request):
         request.app.state.realtime_service = service
 
     return await service.get_live_argo_network()
+
+import asyncio
+from sse_starlette.sse import EventSourceResponse
+import json
+
+@router.get("/stream")
+async def live_stream(request: Request):
+    """
+    Subscribe to live real-time ocean updates via Server-Sent Events (SSE).
+    """
+    broadcaster = getattr(request.app.state, "live_feed_broadcaster", None)
+    if not broadcaster:
+        return {"error": "Broadcaster not initialized"}
+        
+    async def event_publisher():
+        q = await broadcaster.add_client()
+        try:
+            while True:
+                # Disconnect if client leaves
+                if await request.is_disconnected():
+                    break
+                
+                # Wait for next payload from broadcaster
+                try:
+                    # Timeout to allow checking for disconnects
+                    payload = await asyncio.wait_for(q.get(), timeout=5.0)
+                    yield {
+                        "event": "update",
+                        "data": json.dumps(payload)
+                    }
+                except asyncio.TimeoutError:
+                    # Send a keepalive ping
+                    yield {
+                        "event": "ping",
+                        "data": "keepalive"
+                    }
+        finally:
+            broadcaster.remove_client(q)
+
+    return EventSourceResponse(event_publisher())
