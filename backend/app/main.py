@@ -83,6 +83,8 @@ async def lifespan(app: FastAPI):
     logger.info("🌊 OCEAN-X API shutdown")
 
 
+from prometheus_fastapi_instrumentator import Instrumentator
+
 # Create FastAPI app
 app = FastAPI(
     title="OCEAN-X API",
@@ -91,6 +93,9 @@ app = FastAPI(
     debug=settings.debug,
     lifespan=lifespan
 )
+
+# Instrument the app for Prometheus metrics
+Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
     CORSMiddleware,
