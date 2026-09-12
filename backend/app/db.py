@@ -13,7 +13,7 @@ if settings.database_url:
 else:
     # Local fallback
     os.makedirs(settings.data_dir, exist_ok=True)
-    sqlite_path = os.path.join(settings.data_dir, "oceanx_history.db")
+    sqlite_path = os.path.abspath(os.path.join(settings.data_dir, "oceanx_history.db"))
     SQLALCHEMY_DATABASE_URL = f"sqlite:///{sqlite_path}"
 
 logger.info(f"Initializing database at: {SQLALCHEMY_DATABASE_URL}")
