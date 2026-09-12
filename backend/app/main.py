@@ -15,7 +15,8 @@ from app.services.netcdf_service import NetCDFService
 from app.services.argo_service import ArgoService
 from app.services.anomaly_service import AnomalyService
 from app.services.cache_service import CacheService
-from app.routers import model_data, observations, comparison, anomaly, analytics
+from app.services.realtime_service import RealtimeOceanService
+from app.routers import model_data, observations, comparison, anomaly, analytics, realtime
 from app.models import schemas
 
 
@@ -50,12 +51,16 @@ async def lifespan(app: FastAPI):
 
     # Initialize Multi-Tier Cache Service (In-memory + Redis)
     cache_service = CacheService(redis_url=settings.redis_url, default_ttl_seconds=900)
+
+    # Initialize Realtime Ocean Service
+    realtime_service = RealtimeOceanService()
     
     # Store on app state for access in endpoints
     app.state.nc_service = nc_service
     app.state.argo_service = argo_service
     app.state.anomaly_service = anomaly_service
     app.state.cache_service = cache_service
+    app.state.realtime_service = realtime_service
     app.state.settings = settings
     
     logger.info("🌊 OCEAN-X API started")
@@ -103,6 +108,7 @@ app.include_router(observations.router)
 app.include_router(comparison.router)
 app.include_router(anomaly.router)
 app.include_router(analytics.router)
+app.include_router(realtime.router)
 
 
 @app.get("/api/v1/analytics/heat-potential", response_model=schemas.HeatPotentialResponse, tags=["Analytics & Spatial Intelligence"])

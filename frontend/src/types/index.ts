@@ -314,5 +314,60 @@ export interface HeatPotentialPoint {
   formula: string;
 }
 
+export interface LiveOceanHourlyPrediction {
+  time: string;
+  hour_offset: number;
+  wave_height_m: number;
+  current_velocity_ms: number;
+  current_direction_deg: number;
+  cyclone_risk: 'NOMINAL' | 'WARNING' | 'CRITICAL';
+}
+
+export interface LiveOceanResponse {
+  status: string;
+  source: string;
+  latitude: number;
+  longitude: number;
+  timestamp_utc: string;
+  current_observations: {
+    wave_height_m: number;
+    wave_period_s: number;
+    wave_direction_deg: number;
+    swell_wave_height_m: number;
+    wind_wave_height_m: number;
+    current_velocity_ms: number;
+    current_direction_deg: number;
+    sea_surface_temp_estimate_c: number;
+  };
+  prediction_summary: {
+    forecast_horizon_hours: number;
+    peak_wave_height_m: number;
+    peak_current_velocity_ms: number;
+    primary_risk: string;
+    recommendation: string;
+  };
+  hourly_forecast: LiveOceanHourlyPrediction[];
+}
+
+export interface LiveArgoPlatform {
+  platform_id: string;
+  type: string;
+  institution?: string;
+  latitude: number;
+  longitude: number;
+  last_observation_utc?: string;
+  status: string;
+  file_uri?: string;
+}
+
+export interface LiveFleetResponse {
+  status: string;
+  source: string;
+  total_profiles_found: number;
+  unique_active_floats: number;
+  platforms: LiveArgoPlatform[];
+  timestamp: string;
+}
+
 
 

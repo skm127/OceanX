@@ -66,6 +66,7 @@ const LearnStoryJourney = lazy(() => import('./components/Panels/LearnStoryJourn
 const DataManagerModal = lazy(() => import('./components/Panels/DataManagerModal'));
 const CoLocationModal = lazy(() => import('./components/Panels/CoLocationModal'));
 const SoundingStudioPage = lazy(() => import('./components/Panels/SoundingStudioPage'));
+const RealtimePredictionModal = lazy(() => import('./components/Panels/RealtimePredictionModal'));
 import OceanGuideAgent from './components/OceanGuide/OceanGuideAgent';
 
 function App() {
@@ -122,6 +123,7 @@ function App() {
   const [provenanceOpen, setProvenanceOpen] = useState(false);
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [realtimeModalOpen, setRealtimeModalOpen] = useState(false);
 
   // SAGAR-VIEW Product Mode & Co-Location Engine state
   const [productMode, setProductMode] = useState<ProductMode>('research');
@@ -426,6 +428,7 @@ function App() {
         setBriefingOpen(false);
         setCoLocationOpen(false);
         setGuideOpen(false);
+        setRealtimeModalOpen(false);
       } else if (e.key === '1') {
         handleSelectSectorRef.current('all_india');
       } else if (e.key === '2') {
@@ -460,6 +463,8 @@ function App() {
         setFleetOpen((prev) => !prev);
       } else if (e.key === '?') {
         setShowHotkeys((prev) => !prev);
+      } else if (e.key === 'd' || e.key === 'D') {
+        setRealtimeModalOpen((prev) => !prev);
       }
     };
 
@@ -539,6 +544,17 @@ function App() {
             <span className="btn-robot-icon">🤖</span>
             <span>AI GUIDE</span>
             <span className="guide-hint-badge">HELP</span>
+          </button>
+
+          {/* Real-Time Live Ocean Data & Predictions */}
+          <button
+            className={`c2-badge ai-guide-top-btn ${realtimeModalOpen ? 'active' : ''}`}
+            onClick={() => setRealtimeModalOpen((prev) => !prev)}
+            title="Live Ocean Telemetry & 72-Hour Predictions (Key: D)"
+            style={{ background: realtimeModalOpen ? 'rgba(0,255,180,0.15)' : undefined }}
+          >
+            <span className="btn-robot-icon">🛰️</span>
+            <span>LIVE DATA</span>
           </button>
 
           {/* Data Provenance & Methodology */}
@@ -1056,6 +1072,20 @@ function App() {
           explainMode={explainMode}
         />
 
+        {/* Real-Time Live Ocean Telemetry & 72-Hour Prediction Modal */}
+        {realtimeModalOpen && (
+          <Suspense fallback={null}>
+            <RealtimePredictionModal
+              isOpen={realtimeModalOpen}
+              onClose={() => setRealtimeModalOpen(false)}
+              onFlyToLocation={(lat, lon) => {
+                handleCameraFlyTo(lat, lon, 4.2);
+                setProbedCoord({ lat, lon });
+              }}
+            />
+          </Suspense>
+        )}
+
         {/* Interactive Layman AI Ocean Guide Assistant */}
         <OceanGuideAgent
           isOpen={guideOpen}
@@ -1080,6 +1110,7 @@ function App() {
           onSelectArgo={handleSelectArgo}
           onSetProductMode={handleProductModeChange}
           onOpenTransect={() => setTransectModalOpen(true)}
+          onOpenRealtime={() => setRealtimeModalOpen(true)}
         />
 
         {/* Error notification banner */}

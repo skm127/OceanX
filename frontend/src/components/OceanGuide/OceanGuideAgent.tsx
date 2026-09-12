@@ -32,6 +32,7 @@ export interface OceanGuideAgentProps {
   onSelectArgo: (id: string) => void;
   onSetProductMode: (mode: any) => void;
   onOpenTransect: () => void;
+  onOpenRealtime?: () => void;
 }
 
 interface ChatMessage {
@@ -61,6 +62,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
   onSelectArgo,
   onSetProductMode,
   onOpenTransect,
+  onOpenRealtime,
 }) => {
   const [activeTab, setActiveTab] = useState<'screen' | 'chat' | 'tours' | 'glossary'>('screen');
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -327,6 +329,18 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
         onSetProductMode('sounding');
         addAiMessage(
           "📊 **Sounding Studio opened!** Here you can inspect high-resolution depth soundings comparing the computer's prediction against real robotic measurements with zero UI clutter."
+        );
+      },
+    },
+    {
+      id: 'realtime',
+      icon: '🛰️',
+      title: 'Live Real-Time Ocean Data & Predictions',
+      desc: 'View real-time wave heights, current velocities, and 72-hour forward predictions from global marine APIs.',
+      action: () => {
+        onOpenRealtime?.();
+        addAiMessage(
+          "🛰️ **Live Data Panel opened!** You're now viewing real-time ocean telemetry from the Open-Meteo Marine API. The graph shows wave and current predictions for the next 72 hours. Scrub the slider to see future conditions!"
         );
       },
     },
