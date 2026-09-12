@@ -72,6 +72,7 @@ import OceanGuideAgent from './components/OceanGuide/OceanGuideAgent';
 
 import { useLiveFeed } from './hooks/useLiveFeed';
 import { LiveConnectionIndicator } from './components/Controls/LiveConnectionIndicator';
+import { useUIStore } from './store/uiStore';
 
 function App() {
   const {
@@ -110,31 +111,32 @@ function App() {
   // Sector and Camera flight state
   const [currentSector, setCurrentSector] = useState<SectorId>('all_india');
   const [targetCameraPos, setTargetCameraPos] = useState<THREE.Vector3 | null>(null);
+  const {
+    productMode, setProductMode,
+    explainMode, setExplainMode,
+    briefingOpen, setBriefingOpen,
+    provenanceOpen, setProvenanceOpen,
+    coLocationOpen, setCoLocationOpen,
+    transectModalOpen, setTransectModalOpen,
+    searchModalOpen, setSearchModalOpen,
+    realtimeModalOpen, setRealtimeModalOpen,
+    guideOpen, setGuideOpen,
+    toolsMenuOpen, setToolsMenuOpen,
+  } = useUIStore();
+
   const [fleetOpen, setFleetOpen] = useState(false);
   const [probedCoord, setProbedCoord] = useState<{ lat: number; lon: number } | null>(null);
   const [oceanOpacity, setOceanOpacity] = useState<number>(0.82);
   const [showHotkeys, setShowHotkeys] = useState<boolean>(false);
-  const [briefingOpen, setBriefingOpen] = useState<boolean>(false);
 
   // New PRD Intelligence & Spatial Modals
   const [dossierCoord, setDossierCoord] = useState<{ lat: number; lon: number } | null>(null);
   const [regionModalOpen, setRegionModalOpen] = useState(false);
   const [regionBounds, setRegionBounds] = useState({ latMin: 10, latMax: 22, lonMin: 80, lonMax: 92 });
-  const [transectModalOpen, setTransectModalOpen] = useState(false);
   const [transectLine, setTransectLine] = useState({ lat1: 10, lon1: 85, lat2: 19, lon2: 89 });
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
-  const [explainMode, setExplainMode] = useState<ExplainMode>('citizen');
   const [hoverCoord, setHoverCoord] = useState<{ lat: number; lon: number } | null>(null);
   const [cameraPitch, setCameraPitch] = useState<number>(50);
-  const [provenanceOpen, setProvenanceOpen] = useState(false);
-  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
-  const [realtimeModalOpen, setRealtimeModalOpen] = useState(false);
-
-  // SAGAR-VIEW Product Mode & Co-Location Engine state
-  const [productMode, setProductMode] = useState<ProductMode>('research');
-  const [coLocationOpen, setCoLocationOpen] = useState(false);
 
   // Vertical Profile HUD state matching Image 1
   const [profileHudData, setProfileHudData] = useState<{

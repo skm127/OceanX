@@ -8,16 +8,19 @@
 
 :root {
   --bg-space: #0a0e14;
-  --bg-panel: rgba(15, 23, 42, 0.85);
-  --bg-panel-elevated: rgba(30, 41, 59, 0.9);
-  --border-cyan: rgba(148, 163, 184, 0.1);
-  --border-glow: rgba(56, 189, 248, 0.3);
+  --bg-panel: rgba(15, 23, 42, 0.45);
+  --bg-panel-elevated: rgba(30, 41, 59, 0.65);
+  --glass-blur: blur(24px);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --border-cyan: rgba(148, 163, 184, 0.15);
+  --border-glow: rgba(56, 189, 248, 0.4);
   --accent-cyan: #38bdf8;
   --accent-blue: #60a5fa;
   --accent-green: #34d399;
   --accent-amber: #fbbf24;
   --accent-red: #f87171;
-  --text-primary: #f1f5f9;
+  --text-primary: #f8fafc;
   --text-dim: #94a3b8;
   --text-muted: #64748b;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;

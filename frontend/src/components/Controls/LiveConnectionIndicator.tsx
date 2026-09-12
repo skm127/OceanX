@@ -18,7 +18,7 @@ export const LiveConnectionIndicator: React.FC<Props> = ({ status, lastUpdated }
   };
 
   return (
-    <div className={`live-conn-indicator ${status}`}>
+    <div className={`live-conn-indicator ${status}`} aria-live="polite" aria-atomic="true">
       <span className="live-conn-dot" />
       <span className="live-conn-text">{getStatusText()}</span>
     </div>
