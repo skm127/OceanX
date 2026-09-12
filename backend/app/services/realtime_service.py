@@ -9,29 +9,25 @@ Integrations:
 """
 
 import os
-import json
 import ssl
-import urllib.request
-import urllib.error
 import logging
+import httpx
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger("realtime_service")
 
-
 class RealtimeOceanService:
     def __init__(self, cache_ttl_seconds: int = 300):
         self.cache_ttl = cache_ttl_seconds
         self._cache: Dict[str, Dict[str, Any]] = {}
+        # We reuse an httpx async client for connection pooling
+        self.client = httpx.AsyncClient(verify=False, timeout=20.0)
 
-    def _get_ssl_context(self) -> ssl.SSLContext:
-        try:
-            return ssl.create_default_context()
-        except Exception:
-            return ssl._create_unverified_context()
+    async def close(self):
+        await self.client.aclose()
 
-    def get_live_conditions_and_forecast(
+    async def get_live_conditions_and_forecast(
         self, lat: float = 14.5, lon: float = 84.8
     ) -> Dict[str, Any]:
         """
@@ -54,75 +50,69 @@ class RealtimeOceanService:
         )
 
         try:
-            req = urllib.request.Request(
-                url,
+            resp = await self.client.get(
+                url, 
                 headers={"User-Agent": "OCEAN-X-INCOIS-Platform/1.0 (Live Ocean Prediction)"},
+                timeout=8.0
             )
-            ctx = self._get_ssl_context()
-            try:
-                resp = urllib.request.urlopen(req, timeout=8, context=ctx)
-            except Exception:
-                ctx = ssl._create_unverified_context()
-                resp = urllib.request.urlopen(req, timeout=8, context=ctx)
+            resp.raise_for_status()
+            
+            raw = resp.json()
+            curr = raw.get("current", {})
+            hourly = raw.get("hourly", {})
 
-            with resp as r:
-                if r.status == 200:
-                    raw = json.loads(r.read().decode("utf-8"))
-                    curr = raw.get("current", {})
-                    hourly = raw.get("hourly", {})
+            # Format 72-hour forecast series
+            times = hourly.get("time", [])
+            wave_heights = hourly.get("wave_height", [])
+            current_velocities = hourly.get("ocean_current_velocity", [])
+            current_directions = hourly.get("ocean_current_direction", [])
 
-                    # Format 72-hour forecast series
-                    times = hourly.get("time", [])
-                    wave_heights = hourly.get("wave_height", [])
-                    current_velocities = hourly.get("ocean_current_velocity", [])
-                    current_directions = hourly.get("ocean_current_direction", [])
+            forecast_series = []
+            for i in range(min(len(times), 72)):
+                vel = current_velocities[i] if i < len(current_velocities) else 0.5
+                wh = wave_heights[i] if i < len(wave_heights) else 1.5
+                risk = "CRITICAL" if (vel or 0) > 1.2 or (wh or 0) > 3.0 else "WARNING" if (vel or 0) > 0.8 or (wh or 0) > 2.0 else "NOMINAL"
 
-                    forecast_series = []
-                    for i in range(min(len(times), 72)):
-                        vel = current_velocities[i] if i < len(current_velocities) else 0.5
-                        wh = wave_heights[i] if i < len(wave_heights) else 1.5
-                        risk = "CRITICAL" if (vel or 0) > 1.2 or (wh or 0) > 3.0 else "WARNING" if (vel or 0) > 0.8 or (wh or 0) > 2.0 else "NOMINAL"
+                forecast_series.append({
+                    "time": times[i],
+                    "hour_offset": i,
+                    "wave_height_m": round(wh or 0.0, 2),
+                    "current_velocity_ms": round(vel or 0.0, 2),
+                    "current_direction_deg": round(current_directions[i] or 0.0, 1) if i < len(current_directions) else 0.0,
+                    "cyclone_risk": risk,
+                })
 
-                        forecast_series.append({
-                            "time": times[i],
-                            "hour_offset": i,
-                            "wave_height_m": round(wh or 0.0, 2),
-                            "current_velocity_ms": round(vel or 0.0, 2),
-                            "current_direction_deg": round(current_directions[i] or 0.0, 1) if i < len(current_directions) else 0.0,
-                            "cyclone_risk": risk,
-                        })
+            result = {
+                "status": "live",
+                "source": "Open-Meteo Marine Global Real-Time API",
+                "latitude": lat,
+                "longitude": lon,
+                "timestamp_utc": curr.get("time", now.isoformat()),
+                "current_observations": {
+                    "wave_height_m": curr.get("wave_height", 1.8),
+                    "wave_period_s": curr.get("wave_period", 8.2),
+                    "wave_direction_deg": curr.get("wave_direction", 195),
+                    "swell_wave_height_m": curr.get("swell_wave_height", 0.7),
+                    "wind_wave_height_m": curr.get("wind_wave_height", 0.9),
+                    "current_velocity_ms": curr.get("ocean_current_velocity", 0.85),
+                    "current_direction_deg": curr.get("ocean_current_direction", 90),
+                    "sea_surface_temp_estimate_c": 29.4 if lat < 20 else 28.1,
+                },
+                "prediction_summary": {
+                    "forecast_horizon_hours": len(forecast_series),
+                    "peak_wave_height_m": round(max((f["wave_height_m"] for f in forecast_series), default=2.0), 2),
+                    "peak_current_velocity_ms": round(max((f["current_velocity_ms"] for f in forecast_series), default=1.1), 2),
+                    "primary_risk": "ELEVATED" if any(f["cyclone_risk"] == "CRITICAL" for f in forecast_series) else "MODERATE",
+                    "recommendation": (
+                        "Advisory for coastal fishermen: Strong current convergence predicted in next 24-48 hours. "
+                        "Offshore vessels advised to monitor wave heights exceeding 2.5m."
+                    ),
+                },
+                "hourly_forecast": forecast_series,
+            }
 
-                    result = {
-                        "status": "live",
-                        "source": "Open-Meteo Marine Global Real-Time API",
-                        "latitude": lat,
-                        "longitude": lon,
-                        "timestamp_utc": curr.get("time", now.isoformat()),
-                        "current_observations": {
-                            "wave_height_m": curr.get("wave_height", 1.8),
-                            "wave_period_s": curr.get("wave_period", 8.2),
-                            "wave_direction_deg": curr.get("wave_direction", 195),
-                            "swell_wave_height_m": curr.get("swell_wave_height", 0.7),
-                            "wind_wave_height_m": curr.get("wind_wave_height", 0.9),
-                            "current_velocity_ms": curr.get("ocean_current_velocity", 0.85),
-                            "current_direction_deg": curr.get("ocean_current_direction", 90),
-                            "sea_surface_temp_estimate_c": 29.4 if lat < 20 else 28.1,
-                        },
-                        "prediction_summary": {
-                            "forecast_horizon_hours": len(forecast_series),
-                            "peak_wave_height_m": round(max((f["wave_height_m"] for f in forecast_series), default=2.0), 2),
-                            "peak_current_velocity_ms": round(max((f["current_velocity_ms"] for f in forecast_series), default=1.1), 2),
-                            "primary_risk": "ELEVATED" if any(f["cyclone_risk"] == "CRITICAL" for f in forecast_series) else "MODERATE",
-                            "recommendation": (
-                                "Advisory for coastal fishermen: Strong current convergence predicted in next 24-48 hours. "
-                                "Offshore vessels advised to monitor wave heights exceeding 2.5m."
-                            ),
-                        },
-                        "hourly_forecast": forecast_series,
-                    }
-
-                    self._cache[cache_key] = {"timestamp": now, "data": result}
-                    return result
+            self._cache[cache_key] = {"timestamp": now, "data": result}
+            return result
 
         except Exception as e:
             logger.warning("Live ocean API query failed (%s). Generating calibrated physics forecast baseline.", e)
@@ -130,7 +120,7 @@ class RealtimeOceanService:
         # High-fidelity calibrated fallback if network is briefly unavailable
         return self._generate_fallback_forecast(lat, lon, now)
 
-    def get_live_argo_network(self) -> Dict[str, Any]:
+    async def get_live_argo_network(self) -> Dict[str, Any]:
         """
         Query real-time active Argo float network from Ifremer GDAC ERDDAP.
         """
@@ -152,54 +142,52 @@ class RealtimeOceanService:
         )
 
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "OCEAN-X-INCOIS/1.0"})
-            ctx = ssl._create_unverified_context()
-            # Ifremer index queries routinely take 10-15s; allow up to 20s.
-            with urllib.request.urlopen(req, context=ctx, timeout=20) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                rows = data.get("table", {}).get("rows", [])
+            resp = await self.client.get(
+                url, 
+                headers={"User-Agent": "OCEAN-X-INCOIS/1.0"},
+                timeout=20.0
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            rows = data.get("table", {}).get("rows", [])
 
-                active_platforms = []
-                seen_platforms = set()
+            active_platforms = []
+            seen_platforms = set()
 
-                for r in rows:
-                    filepath, date_str, plat_lat, plat_lon, inst = r
-                    parts = filepath.split("/")
-                    plat_id = parts[1] if len(parts) > 1 else "Unknown"
+            for r in rows:
+                filepath, date_str, plat_lat, plat_lon, inst = r
+                parts = filepath.split("/")
+                plat_id = parts[1] if len(parts) > 1 else "Unknown"
 
-                    if plat_id not in seen_platforms:
-                        seen_platforms.add(plat_id)
-                        active_platforms.append({
-                            "platform_id": plat_id,
-                            "type": "Argo Profiling Float",
-                            "institution": inst,
-                            "latitude": round(plat_lat, 3),
-                            "longitude": round(plat_lon, 3),
-                            "last_observation_utc": date_str,
-                            "status": "OPERATIONAL_TRANSMITTING",
-                            "file_uri": filepath,
-                        })
+                if plat_id not in seen_platforms:
+                    seen_platforms.add(plat_id)
+                    active_platforms.append({
+                        "platform_id": plat_id,
+                        "type": "Argo Profiling Float",
+                        "institution": inst,
+                        "latitude": round(plat_lat, 3),
+                        "longitude": round(plat_lon, 3),
+                        "last_observation_utc": date_str,
+                        "status": "OPERATIONAL_TRANSMITTING",
+                        "file_uri": filepath,
+                    })
 
-                result = {
-                    "status": "live",
-                    "source": "Ifremer Global Data Assembly Centre (GDAC) ERDDAP",
-                    "total_profiles_found": len(rows),
-                    "unique_active_floats": len(active_platforms),
-                    "platforms": active_platforms[:50],
-                    "timestamp": now.isoformat(),
-                }
-                self._cache[cache_key] = {"timestamp": now, "data": result}
-                return result
+            result = {
+                "status": "live",
+                "source": "Ifremer Global Data Assembly Centre (GDAC) ERDDAP",
+                "total_profiles_found": len(rows),
+                "unique_active_floats": len(active_platforms),
+                "platforms": active_platforms[:50],
+                "timestamp": now.isoformat(),
+            }
+            self._cache[cache_key] = {"timestamp": now, "data": result}
+            return result
 
         except Exception as e:
             logger.info("Ifremer ERDDAP live query fallback (%s)", e)
-            # Cache the baseline fallback too so a transient upstream outage
-            # doesn't re-trigger the slow upstream call on every UI poll.
             fallback = self._fallback_fleet(now)
             self._cache[cache_key] = {"timestamp": now, "data": fallback}
             return fallback
-
-        return self._fallback_fleet(now)
 
     def _fallback_fleet(self, now: datetime) -> Dict[str, Any]:
         return {

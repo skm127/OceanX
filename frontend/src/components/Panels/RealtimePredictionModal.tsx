@@ -198,6 +198,26 @@ export const RealtimePredictionModal: React.FC<RealtimePredictionModalProps> = (
           </button>
         </div>
 
+        {/* Data Provenance Banner */}
+        {!loading && activeTab === 'forecast' && oceanData && (
+          <div className={`rt-provenance-banner ${oceanData.status === 'live' ? 'live' : 'fallback'}`}>
+            {oceanData.status === 'live' ? (
+              <span>🟢 <strong>LIVE DATA:</strong> Connected to upstream network ({oceanData.source})</span>
+            ) : (
+              <span>🟡 <strong>CALIBRATED BASELINE:</strong> Upstream network offline. Displaying synthesized physics baseline ({oceanData.source})</span>
+            )}
+          </div>
+        )}
+        {!loading && activeTab === 'fleet' && fleetData && (
+          <div className={`rt-provenance-banner ${fleetData.status === 'live' ? 'live' : 'fallback'}`}>
+            {fleetData.status === 'live' ? (
+              <span>🟢 <strong>LIVE FLEET:</strong> Connected to Ifremer GDAC ERDDAP</span>
+            ) : (
+              <span>🟡 <strong>CACHED SNAPSHOT:</strong> ERDDAP offline. Displaying INCOIS baseline observation network.</span>
+            )}
+          </div>
+        )}
+
         {/* Body Content */}
         <div className="rt-body">
           {loading && (

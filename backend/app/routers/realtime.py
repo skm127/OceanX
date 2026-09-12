@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/realtime", tags=["realtime"])
 
 
 @router.get("/live-ocean")
-def get_live_ocean_conditions(
+async def get_live_ocean_conditions(
     request: Request,
     lat: float = Query(14.5, description="Latitude in degrees (-90 to 90)"),
     lon: float = Query(84.8, description="Longitude in degrees (-180 to 180)"),
@@ -25,11 +25,11 @@ def get_live_ocean_conditions(
         service = RealtimeOceanService()
         request.app.state.realtime_service = service
 
-    return service.get_live_conditions_and_forecast(lat=lat, lon=lon)
+    return await service.get_live_conditions_and_forecast(lat=lat, lon=lon)
 
 
 @router.get("/fleet-live")
-def get_live_argo_fleet(request: Request):
+async def get_live_argo_fleet(request: Request):
     """
     Retrieve live real-time autonomous profiling float and buoy network telemetry
     directly from Ifremer GDAC ERDDAP and INCOIS Observation Network.
@@ -40,4 +40,4 @@ def get_live_argo_fleet(request: Request):
         service = RealtimeOceanService()
         request.app.state.realtime_service = service
 
-    return service.get_live_argo_network()
+    return await service.get_live_argo_network()
