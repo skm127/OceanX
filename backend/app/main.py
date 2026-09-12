@@ -98,6 +98,18 @@ async def lifespan(app: FastAPI):
 
 
 from prometheus_fastapi_instrumentator import Instrumentator
+import sentry_sdk
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.limiter import limiter
+
+# Initialize Sentry for error tracking
+if os.getenv("SENTRY_DSN"):
+    sentry_sdk.init(
+        dsn=os.getenv("SENTRY_DSN"),
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
 
 # Create FastAPI app
 app = FastAPI(
@@ -107,6 +119,9 @@ app = FastAPI(
     debug=settings.debug,
     lifespan=lifespan
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Instrument the app for Prometheus metrics
 Instrumentator().instrument(app).expose(app)

@@ -6,6 +6,7 @@ Provides /api/guide/chat endpoint for the OceanGuideAgent frontend.
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from typing import Optional, List
+from app.limiter import limiter
 
 router = APIRouter(prefix="/api/guide", tags=["AI Guide"])
 
@@ -27,6 +28,7 @@ class GuideChatResponse(BaseModel):
 
 
 @router.post("/chat", response_model=GuideChatResponse)
+@limiter.limit("5/minute")
 async def guide_chat(req: GuideChatRequest, request: Request):
     """Handle a user chat message and return an AI-generated response."""
     guide_service = request.app.state.guide_service

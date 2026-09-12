@@ -5,11 +5,13 @@ REST API endpoints for real-time live ocean telemetry and 72-hour forward predic
 
 from fastapi import APIRouter, Query, Request
 from typing import Optional
+from app.limiter import limiter
 
 router = APIRouter(prefix="/api/realtime", tags=["realtime"])
 
 
 @router.get("/live-ocean")
+@limiter.limit("10/minute")
 async def get_live_ocean_conditions(
     request: Request,
     lat: float = Query(14.5, description="Latitude in degrees (-90 to 90)"),

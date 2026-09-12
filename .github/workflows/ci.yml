@@ -52,24 +52,9 @@ jobs:
         run: |
           python scripts/generate_sample_data.py
 
-      - name: Run Backend Integration Tests
+      - name: Run Pytest Suites
+        working-directory: backend
+        env:
+          PYTHONPATH: .
         run: |
-          python -c "
-          import sys
-          sys.path.insert(0, 'backend')
-          from fastapi.testclient import TestClient
-          from app.main import app
-
-          with TestClient(app) as client:
-              r = client.get('/api/health')
-              assert r.status_code == 200, f'Health check failed: {r.status_code}'
-              r = client.get('/api/model/info')
-              assert r.status_code == 200, f'Model info failed: {r.status_code}'
-              r = client.get('/api/model/slice?variable=thetao&depth=0&time_index=0')
-              assert r.status_code == 200, f'Model slice failed: {r.status_code}'
-              r = client.get('/api/observations/all')
-              assert r.status_code == 200, f'Observations all failed: {r.status_code}'
-              r = client.get('/api/analytics/heat-potential')
-              assert r.status_code == 200, f'Heat potential failed: {r.status_code}'
-              print('All CI automated tests passed successfully!')
-          "
+          pytest tests/
