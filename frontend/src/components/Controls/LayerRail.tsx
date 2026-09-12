@@ -13,6 +13,11 @@ interface LayerRailProps {
   showCurrents: boolean;
   opacity: number;
   showArgo: boolean;
+  showBuoys?: boolean;
+  showGliders?: boolean;
+  argoCount?: number;
+  buoyCount?: number;
+  gliderCount?: number;
   showSST: boolean;
   showCyclones: boolean;
   showTCHP?: boolean;
@@ -21,6 +26,8 @@ interface LayerRailProps {
   onVariableChange: (v: OceanVariable) => void;
   onToggleCurrents: () => void;
   onToggleArgo: () => void;
+  onToggleBuoys?: () => void;
+  onToggleGliders?: () => void;
   onToggleSST: () => void;
   onToggleCyclones: () => void;
   onToggleTCHP?: () => void;
@@ -40,6 +47,11 @@ export const LayerRail: React.FC<LayerRailProps> = ({
   showCurrents,
   opacity,
   showArgo,
+  showBuoys,
+  showGliders,
+  argoCount,
+  buoyCount,
+  gliderCount,
   showSST,
   showCyclones,
   showTCHP = false,
@@ -48,6 +60,8 @@ export const LayerRail: React.FC<LayerRailProps> = ({
   onVariableChange,
   onToggleCurrents,
   onToggleArgo,
+  onToggleBuoys,
+  onToggleGliders,
   onToggleSST,
   onToggleCyclones,
   onToggleTCHP = () => {},
@@ -237,19 +251,19 @@ export const LayerRail: React.FC<LayerRailProps> = ({
                     onChange={onToggleArgo}
                   />
                   <span className="feed-label">Argo Profiling Fleet</span>
-                  <span className="feed-badge green">LIVE (8)</span>
+                  <span className="feed-badge green">LIVE ({argoCount ?? 0})</span>
                 </label>
 
-                <label className={`feed-item ${showArgo ? 'active' : ''}`} title="Autonomous Glider feed">
-                  <input type="checkbox" checked={showArgo} onChange={onToggleArgo} />
+                <label className={`feed-item ${showGliders ?? showArgo ? 'active' : ''}`} title="Autonomous Glider feed">
+                  <input type="checkbox" checked={showGliders ?? showArgo} onChange={onToggleGliders ?? onToggleArgo} />
                   <span className="feed-label">Ocean Gliders</span>
-                  <span className="feed-badge green">LIVE (1)</span>
+                  <span className="feed-badge green">LIVE ({gliderCount ?? 0})</span>
                 </label>
 
-                <label className={`feed-item ${showArgo ? 'active' : ''}`} title="Moored buoy arrays">
-                  <input type="checkbox" checked={showArgo} onChange={onToggleArgo} />
+                <label className={`feed-item ${showBuoys ?? showArgo ? 'active' : ''}`} title="Moored buoy arrays">
+                  <input type="checkbox" checked={showBuoys ?? showArgo} onChange={onToggleBuoys ?? onToggleArgo} />
                   <span className="feed-label">Moored Buoys (OMNI)</span>
-                  <span className="feed-badge green">LIVE (3)</span>
+                  <span className="feed-badge green">LIVE ({buoyCount ?? 0})</span>
                 </label>
               </div>
             )}

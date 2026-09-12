@@ -10,12 +10,18 @@ interface MissionBriefingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onJumpToAnomaly: () => void;
+  /** platform_id of the fleet's top anomaly, from the live summary. */
+  anomalyFloatId?: string | null;
+  /** critical + warning count from the live fleet summary. */
+  anomalyCount?: number;
 }
 
 export default function MissionBriefingModal({
   isOpen,
   onClose,
   onJumpToAnomaly,
+  anomalyFloatId,
+  anomalyCount,
 }: MissionBriefingModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -115,7 +121,7 @@ export default function MissionBriefingModal({
               <div className="demo-step">
                 <span className="step-num">3</span>
                 <div>
-                  <strong>Spot the Anomaly:</strong> Click the pulsing red <code>[ 🚨 1 CRITICAL ANOMALY ]</code> badge or press <code>4</code> to fly directly to Float <code>#2902345</code>.
+                  <strong>Spot the Anomaly:</strong> Click the pulsing red <code>[ 🚨 {anomalyCount ?? '?'} ANOMALIES ]</code> badge or press <code>4</code> to fly directly to Float <code>#{anomalyFloatId ?? '—'}</code>.
                 </div>
               </div>
               <div className="demo-step">
@@ -160,7 +166,7 @@ export default function MissionBriefingModal({
               onJumpToAnomaly();
             }}
           >
-            🎯 Jump to Active Marine Heatwave (#2902345)
+            🎯 Jump to Active Marine Heatwave{anomalyFloatId ? ` (#${anomalyFloatId})` : ''}
           </button>
           <button className="btn-close-briefing" onClick={onClose}>
             Close Briefing & Enter C2 Dashboard

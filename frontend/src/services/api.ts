@@ -683,7 +683,9 @@ export async function getRealtimeFleet(): Promise<LiveFleetResponse> {
     return getMockRealtimeFleet();
   }
   try {
-    const res = await api.get<LiveFleetResponse>('/api/realtime/fleet-live');
+    // Upstream Ifremer ERDDAP query takes 10-15s; the 8s global axios timeout
+    // aborts it mid-flight, silently degrading to mock fleet data every time.
+    const res = await api.get<LiveFleetResponse>('/api/realtime/fleet-live', { timeout: 30000 });
     return res.data;
   } catch {
     return getMockRealtimeFleet();
@@ -771,11 +773,17 @@ export async function chatWithGuide(
   history?: GuideChatMessage[],
 ): Promise<GuideChatResponse> {
   try {
-    const res = await api.post<GuideChatResponse>('/api/guide/chat', {
-      message,
-      context: context || {},
-      history: history || [],
-    });
+    const res = await api.post<GuideChatResponse>(
+      '/api/guide/chat',
+      {
+        message,
+        context: context || {},
+        history: history || [],
+      },
+      // LLM replies routinely take >10s; the 8s global axios timeout aborts
+      // them mid-flight, so this endpoint gets its own generous budget.
+      { timeout: 45000 }
+    );
     return res.data;
   } catch {
     // If backend is unreachable, return a helpful fallback

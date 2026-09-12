@@ -71,7 +71,7 @@ export default function ControlBar({
       {/* Depth slider */}
       <div className="control-group depth-control">
         <div className="depth-header">
-          <label>Depth: {depthLevels[depthIndex]}m</label>
+          <label>Depth: {depth}m</label>
           <div className="depth-presets">
             {DEPTH_PRESETS.map((preset) => (
               <button

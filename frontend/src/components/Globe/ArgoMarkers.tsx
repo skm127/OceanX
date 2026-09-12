@@ -12,8 +12,22 @@ import * as THREE from 'three';
 import { latLonToVector3, GLOBE_RADIUS } from '../../utils/coordinates';
 import type { ArgoProfileSummary } from '../../types';
 
+/** Non-Argo platforms (moored buoys, gliders) rendered from live backend data. */
+export interface ExtraPlatform {
+  id: string;
+  platform_id: string;
+  lat: number;
+  lon: number;
+  name: string;
+  kind: 'buoy' | 'glider';
+  warning?: boolean;
+}
+
 interface ArgoMarkersProps {
   profiles: ArgoProfileSummary[];
+  extraPlatforms?: ExtraPlatform[];
+  /** platform_id -> anomaly status from the fleet-wide analysis; drives marker colors. */
+  platformStatus?: Record<string, string>;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
@@ -22,10 +36,12 @@ function SingleBuoy({
   profile,
   isSelected,
   onSelect,
+  platformStatus,
 }: {
   profile: ArgoProfileSummary;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  platformStatus?: Record<string, string>;
 }) {
   const [hovered, setHovered] = useState(false);
   const beaconRef = useRef<THREE.Mesh>(null);
@@ -33,9 +49,11 @@ function SingleBuoy({
   const glowRef = useRef<THREE.Mesh>(null);
   const pos = latLonToVector3(profile.latitude, profile.longitude, GLOBE_RADIUS + 0.02);
 
-  // Float status mapping
-  const isCritical = profile.platform_id === '2902345';
-  const isWarning = profile.platform_id === '2904001';
+  // Marker status is driven by the live fleet-wide anomaly analysis, not by
+  // hardcoded platform IDs.
+  const status = platformStatus?.[profile.platform_id];
+  const isCritical = status === 'CRITICAL_ANOMALY';
+  const isWarning = status === 'WARNING';
   const statusColor = isCritical ? '#ef4444' : isWarning ? '#f59e0b' : '#10b981';
 
   // Radar ping & beacon blink animation
@@ -208,20 +226,14 @@ function SingleBuoy({
   );
 }
 
-const INCOIS_BUOYS = [
-  { id: 'buoy_BD08', platform_id: 'BD08', lat: 13.0, lon: 84.0, name: 'OMNI BD08 (Cyclonic TCHP Alert)', warning: true },
-  { id: 'buoy_BD11', platform_id: 'BD11', lat: 15.5, lon: 86.5, name: 'OMNI BD11 (Central Bay)', warning: false },
-  { id: 'buoy_AD02', platform_id: 'AD02', lat: 15.0, lon: 69.0, name: 'OMNI AD02 (Arabian Sea)', warning: false },
-  { id: 'buoy_AD07', platform_id: 'AD07', lat: 10.5, lon: 72.5, name: 'RAMA AD07 (Lakshadweep)', warning: false },
-  { id: 'buoy_RAMA_EQ', platform_id: 'RAMA_EQ', lat: 0.0, lon: 80.5, name: 'RAMA Equatorial', warning: false },
-];
+
 
 function MooredBuoy3DMarker({
   buoy,
   isSelected,
   onSelect,
 }: {
-  buoy: typeof INCOIS_BUOYS[0];
+  buoy: ExtraPlatform;
   isSelected: boolean;
   onSelect: (id: string) => void;
 }) {
@@ -326,14 +338,16 @@ function MooredBuoy3DMarker({
 }
 
 function Glider3DMarker({
+  glider,
   isSelected,
   onSelect,
 }: {
+  glider: ExtraPlatform;
   isSelected: boolean;
   onSelect: (id: string) => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const gliderPos = latLonToVector3(16.0, 85.5, GLOBE_RADIUS + 0.02);
+  const gliderPos = latLonToVector3(glider.lat, glider.lon, GLOBE_RADIUS + 0.02);
   const pulseRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
 
@@ -377,7 +391,7 @@ function Glider3DMarker({
         ref={pulseRef}
         onClick={(e) => {
           e.stopPropagation();
-          onSelect('glider_bob_01');
+          onSelect(glider.id);
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
@@ -410,7 +424,7 @@ function Glider3DMarker({
           outlineColor="#000000"
           font={undefined}
         >
-          GLIDER-01
+          {glider.name || glider.platform_id}
         </Text>
       )}
     </group>
@@ -419,9 +433,14 @@ function Glider3DMarker({
 
 export default function ArgoMarkers({
   profiles,
+  extraPlatforms = [],
+  platformStatus,
   selectedId,
   onSelect,
 }: ArgoMarkersProps) {
+  const buoys = extraPlatforms.filter((p) => p.kind === 'buoy');
+  const gliders = extraPlatforms.filter((p) => p.kind === 'glider');
+
   return (
     <group>
       {/* 1. Argo Profiling Floats */}
@@ -431,11 +450,12 @@ export default function ArgoMarkers({
           profile={profile}
           isSelected={selectedId === profile.id}
           onSelect={onSelect}
+          platformStatus={platformStatus}
         />
       ))}
 
-      {/* 2. INCOIS OMNI & RAMA Moored Buoys */}
-      {INCOIS_BUOYS.map((buoy) => (
+      {/* 2. INCOIS OMNI & RAMA Moored Buoys — live backend positions */}
+      {buoys.map((buoy) => (
         <MooredBuoy3DMarker
           key={buoy.id}
           buoy={buoy}
@@ -444,11 +464,15 @@ export default function ArgoMarkers({
         />
       ))}
 
-      {/* 3. INCOIS Autonomous Glider Mission */}
-      <Glider3DMarker
-        isSelected={selectedId === 'glider_bob_01'}
-        onSelect={onSelect}
-      />
+      {/* 3. INCOIS Autonomous Gliders — live backend positions */}
+      {gliders.map((glider) => (
+        <Glider3DMarker
+          key={glider.id}
+          glider={glider}
+          isSelected={selectedId === glider.id}
+          onSelect={onSelect}
+        />
+      ))}
     </group>
   );
 }

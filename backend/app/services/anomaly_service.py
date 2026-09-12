@@ -180,8 +180,15 @@ class AnomalyService:
         # Composite score blending Isolation Forest decision boundary with physical layer delta
         composite_score = round(float(0.65 * iso_score + 0.35 * physical_heat_factor), 3)
 
-        # Severity classification
-        if is_forest_outlier or composite_score >= 0.62 or len(anomalous_depths) >= 7:
+        # Severity classification.
+        # CRITICAL requires physical corroboration (strong composite score or many
+        # anomalous layers). The raw Isolation Forest outlier flag must NOT force
+        # CRITICAL by itself: the forest is fitted on the training corpus, so real
+        # profile feature vectors routinely fall outside its boundary even when the
+        # physical deltas are negligible — which flagged 8/8 floats CRITICAL and made
+        # the fleet badge meaningless. The forest still contributes through
+        # composite_score (65% weight).
+        if composite_score >= 0.62 or len(anomalous_depths) >= 7:
             status = "CRITICAL_ANOMALY"
             severity = "HIGH"
         elif composite_score >= 0.32 or len(anomalous_depths) >= 3:

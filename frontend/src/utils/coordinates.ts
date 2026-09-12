@@ -93,12 +93,14 @@ export const SECTOR_PRESETS: Record<SectorId, SectorPreset> = {
   },
   anomaly_target: {
     id: 'anomaly_target',
-    label: 'Anomaly #2902345',
+    // Generic label: the actual camera target is resolved live from the fleet
+    // analysis in App.handleSelectSector (the top-anomaly float drifts).
+    label: 'Top Fleet Anomaly',
     icon: '▲',
     lat: 14.5,
     lon: 84.8,
     distance: 4.4,
-    description: 'Significant Thermal Anomaly: +2.7°C Subsurface Blob at 100m',
+    description: 'Fly to the live fleet analysis\' highest-severity float',
   },
   equatorial: {
     id: 'equatorial',

@@ -11,7 +11,7 @@
  * - Global Search (⌘K / Ctrl+K — PRD §24)
  * - Grounded Ocean Analyst AI (PRD §21-23)
  */
-import { lazy, Suspense, useState, useEffect, useCallback, useRef } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import Globe from './components/Globe/Globe';
 import ControlBar from './components/Controls/ControlBar';
@@ -40,6 +40,7 @@ import {
   getHeatPotential,
   inspectHeatPotentialPoint,
 } from './services/api';
+import type { SensorSummary } from './services/api';
 import type { AnomalyFleetSummary, HeatPotentialPoint } from './types';
 import type { OceanSliceData } from './hooks/useOceanData';
 
@@ -149,6 +150,9 @@ function App() {
   // Layer Rail Toggles
   const [layerRailOpen, setLayerRailOpen] = useState(true);
   const [showArgo, setShowArgo] = useState(true);
+  // Independent visibility toggles for buoy/glider platform layers.
+  const [showBuoys, setShowBuoys] = useState(true);
+  const [showGliders, setShowGliders] = useState(true);
   const [showSST, setShowSST] = useState(false);
   const [showCyclones, setShowCyclones] = useState(true);
   const [showTCHP, setShowTCHP] = useState<boolean>(false);
@@ -194,7 +198,10 @@ function App() {
 
   // Dynamic Fleet Anomaly Intelligence & Sensor Network Counters
   const [anomalySummary, setAnomalySummary] = useState<AnomalyFleetSummary | null>(null);
-  const [sensorNetworkCount, setSensorNetworkCount] = useState<number>(argoProfiles.length + 6);
+  const [sensorNetworkCount, setSensorNetworkCount] = useState<number>(argoProfiles.length);
+  // Buoy/glider platforms as reported by the backend — drives globe markers and layer counts.
+  const [buoyPlatforms, setBuoyPlatforms] = useState<SensorSummary[]>([]);
+  const [gliderPlatforms, setGliderPlatforms] = useState<SensorSummary[]>([]);
 
   useEffect(() => {
     getAnomalySummary()
@@ -207,6 +214,8 @@ function App() {
   useEffect(() => {
     getAllObservations()
       .then((res) => {
+        setBuoyPlatforms(res?.moored_buoys ?? []);
+        setGliderPlatforms(res?.gliders ?? []);
         if (res && typeof res.total_platforms === 'number') {
           setSensorNetworkCount(res.total_platforms);
         }
@@ -259,6 +268,9 @@ function App() {
       if (target) {
         setSelectedProfileId(target.id);
         setProbedCoord({ lat: target.latitude, lon: target.longitude });
+        // Fly the camera to the float's LIVE coordinates, not a static sector preset
+        // (the top-anomaly float drifts; the preset was a hardcoded demo position).
+        setTargetCameraPos(latLonToVector3(target.latitude, target.longitude, 4.6));
         // Fetch profile data for HUD
         loadProfileForLocation(target.latitude, target.longitude, target.id);
       }
@@ -298,25 +310,34 @@ function App() {
     [variable, timeIndex]
   );
 
+  // Non-Argo platforms (buoys/gliders) indexed by marker id for fly-to selection.
+  const allSensorsById = useMemo(() => {
+    const idx: Record<string, { lat: number; lon: number }> = {};
+    for (const b of buoyPlatforms) idx[b.id] = { lat: b.latitude, lon: b.longitude };
+    for (const g of gliderPlatforms) idx[g.id] = { lat: g.latitude, lon: g.longitude };
+    return idx;
+  }, [buoyPlatforms, gliderPlatforms]);
+
+  // platform_id -> anomaly status from the live fleet analysis; drives marker colors.
+  const platformStatusMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const f of anomalySummary?.fleet ?? []) map[f.platform_id] = f.status;
+    return map;
+  }, [anomalySummary]);
+
   // Multi-sensor platform selection with smooth camera fly-to (Argo, Buoys, Gliders)
   const handleSelectArgo = (id: string) => {
     setSelectedProfileId(id);
     setProfileHudData((prev) => ({ ...prev, isOpen: false }));
-    const p = argoProfiles.find((item) => item.id === id);
+    // Accept either the internal profile id (argo_2902345_0) or the bare
+    // platform_id (2902345) that callers like the AI guide tours pass.
+    const p = argoProfiles.find((item) => item.id === id || item.platform_id === id);
     if (p) {
       setProbedCoord({ lat: p.latitude, lon: p.longitude });
       setTargetCameraPos(latLonToVector3(p.latitude, p.longitude, 4.6));
       loadProfileForLocation(p.latitude, p.longitude, id);
     } else {
-      const KNOWN_SENSORS: Record<string, { lat: number; lon: number }> = {
-        buoy_BD08: { lat: 13.0, lon: 84.0 },
-        buoy_BD11: { lat: 15.5, lon: 86.5 },
-        buoy_AD02: { lat: 15.0, lon: 69.0 },
-        buoy_AD07: { lat: 10.5, lon: 72.5 },
-        buoy_RAMA_EQ: { lat: 0.0, lon: 80.5 },
-        glider_bob_01: { lat: 16.0, lon: 85.5 },
-      };
-      const s = KNOWN_SENSORS[id];
+      const s = allSensorsById[id];
       if (s) {
         setProbedCoord({ lat: s.lat, lon: s.lon });
         setTargetCameraPos(latLonToVector3(s.lat, s.lon, 4.4));
@@ -658,12 +679,22 @@ function App() {
       {productMode === 'operational' && (
         <Suspense fallback={null}>
           <OperationalSituationRoom
+            data={{
+              topFloatId: anomalySummary?.highest_anomaly_float?.platform_id ?? null,
+              maxDelta: anomalySummary?.highest_anomaly_float?.max_delta ?? null,
+              maxDepth: anomalySummary?.highest_anomaly_float?.max_depth ?? null,
+              tchpKjCm2: tchpPointData?.tchp ?? null,
+              argoCount: argoProfiles.length,
+              buoyCount: buoyPlatforms.length,
+              gliderCount: gliderPlatforms.length,
+            }}
             onJumpToAnomaly={() => handleSelectSector('anomaly_target')}
             onJumpToBuoy={(buoyId) => {
-              if (buoyId === 'buoy_BD08') {
-                handleCameraFlyTo(13.0, 84.0, 4.2);
-                setProbedCoord({ lat: 13.0, lon: 84.0 });
-                loadProfileForLocation(13.0, 84.0, 'buoy_BD08');
+              const s = allSensorsById[buoyId];
+              if (s) {
+                handleCameraFlyTo(s.lat, s.lon, 4.2);
+                setProbedCoord({ lat: s.lat, lon: s.lon });
+                loadProfileForLocation(s.lat, s.lon, buoyId);
               }
             }}
             onClose={() => setProductMode('research')}
@@ -690,6 +721,11 @@ function App() {
           showCurrents={showCurrents}
           opacity={oceanOpacity}
           showArgo={showArgo}
+          showBuoys={showBuoys}
+          showGliders={showGliders}
+          argoCount={argoProfiles.length}
+          buoyCount={buoyPlatforms.length}
+          gliderCount={gliderPlatforms.length}
           showSST={showSST}
           showCyclones={showCyclones}
           showTCHP={showTCHP}
@@ -698,6 +734,8 @@ function App() {
           onVariableChange={setVariable}
           onToggleCurrents={() => setShowCurrents((visible) => !visible)}
           onToggleArgo={() => setShowArgo((visible) => !visible)}
+          onToggleBuoys={() => setShowBuoys((visible) => !visible)}
+          onToggleGliders={() => setShowGliders((visible) => !visible)}
           onToggleSST={() => setShowSST((visible) => !visible)}
           onToggleCyclones={() => setShowCyclones((visible) => !visible)}
           onToggleTCHP={() => {
@@ -737,6 +775,9 @@ function App() {
         {/* In-Situ Fleet Sidebar Drawer */}
         <FleetSidebar
           profiles={argoProfiles}
+          buoys={buoyPlatforms}
+          gliders={gliderPlatforms}
+          platformStatus={platformStatusMap}
           selectedId={selectedProfileId}
           isOpen={fleetOpen}
           onToggle={() => setFleetOpen(!fleetOpen)}
@@ -752,6 +793,20 @@ function App() {
           currentSpeedMax={speedMax}
           showCurrents={showCurrents}
           argoProfiles={showArgo ? argoProfiles : []}
+          extraPlatforms={
+            [
+              ...(showBuoys ? buoyPlatforms : []),
+              ...(showGliders ? gliderPlatforms : []),
+            ].map((s) => ({
+              id: s.id,
+              platform_id: s.platform_id,
+              lat: s.latitude,
+              lon: s.longitude,
+              name: s.platform_id,
+              kind: (s.type === 'glider' ? 'glider' : 'buoy') as 'buoy' | 'glider',
+            }))
+          }
+          platformStatus={platformStatusMap}
           selectedArgoId={selectedProfileId}
           targetCameraPos={targetCameraPos}
           cameraPitch={cameraPitch}
@@ -855,6 +910,7 @@ function App() {
             <GlobalSearchModal
               isOpen={searchModalOpen}
               argoProfiles={argoProfiles}
+              topAnomaly={anomalySummary?.highest_anomaly_float ?? null}
               onClose={() => setSearchModalOpen(false)}
               onSelectCoordinate={(lat, lon) => {
                 setProbedCoord({ lat, lon });
@@ -1021,6 +1077,7 @@ function App() {
               profiles={argoProfiles}
               variable={variable}
               timeIndex={timeIndex}
+              platformStatus={platformStatusMap}
               onSelectProfile={(id) => setSelectedProfileId(id)}
               onVariableChange={setVariable}
               onClose={() => setProductMode('research')}
@@ -1098,6 +1155,7 @@ function App() {
           showTCHP={showTCHP}
           productMode={productMode}
           probedCoord={probedCoord}
+          topAnomaly={anomalySummary?.highest_anomaly_float ?? null}
           onSetVariable={setVariable}
           onSetDepth={setDepth}
           onSelectSector={handleSelectSector}

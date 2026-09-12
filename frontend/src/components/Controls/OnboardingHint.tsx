@@ -10,7 +10,13 @@ export const OnboardingHint: React.FC = () => {
       if (!seen) {
         // Small delay so user sees globe render first
         const timer = setTimeout(() => setVisible(true), 1200);
-        return () => clearTimeout(timer);
+        // Auto-hide after 12s so the one-time tooltip never permanently
+        // covers interactive UI (e.g. the AI guide panel) on small viewports.
+        const autoHide = setTimeout(() => setVisible(false), 13200);
+        return () => {
+          clearTimeout(timer);
+          clearTimeout(autoHide);
+        };
       }
     } catch {
       // Ignore localStorage availability issues

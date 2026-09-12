@@ -85,10 +85,12 @@ class GuideService:
             import google.generativeai as genai
             genai.configure(api_key=self.api_key)
             self.model = genai.GenerativeModel(
-                model_name="gemini-2.0-flash",
+                # "flash-latest" auto-rolls to the current stable Flash model;
+                # pinned names (e.g. gemini-2.0-flash) 404 once Google retires them.
+                model_name="gemini-flash-latest",
                 system_instruction=OCEAN_GUIDE_SYSTEM_PROMPT,
             )
-            logger.info("Gemini AI Guide initialized (gemini-2.0-flash)")
+            logger.info("Gemini AI Guide initialized (%s)", self.model.model_name)
             self._initialized = True
         except Exception as e:
             logger.error(f"Failed to initialize Gemini: {e}")
@@ -132,7 +134,9 @@ class GuideService:
 [USER'S QUESTION]
 {user_message}"""
 
-            response = chat.send_message(prompt)
+            # Async variant: keeps the event loop free while Gemini responds
+            # (sync send_message would block ALL requests for the full latency).
+            response = await chat.send_message_async(prompt)
             return response.text.strip()
 
         except Exception as e:
@@ -295,10 +299,10 @@ class GuideService:
 
         if any(w in q for w in ["anomaly", "error", "wrong", "mismatch", "difference", "gap"]):
             return (
-                "The supercomputer model predicted water temperature, but the Argo robot measured something DIFFERENT.\n\n"
-                "For example, Float #2902345 found water that was **+2.7 degrees C hotter** than predicted at 100m depth! "
-                "That's a hidden heatwave the model completely missed.\n\n"
-                "Press **4** to jump to this anomaly zone and see the model vs reality comparison."
+                "The supercomputer model predicted water temperature, but the Argo robots sometimes measure something DIFFERENT.\n\n"
+                "OCEAN-X runs a live fleet-wide analysis comparing every Argo profile against the model and ranks the largest gaps. "
+                "The worst offender gets flagged on the globe with a red marker — a hidden heatwave the model missed.\n\n"
+                "Press **4** on your keyboard to jump to the current top anomaly zone and see the model vs reality comparison."
             )
 
         if any(w in q for w in ["fish", "life", "save", "important", "why", "impact", "people"]):

@@ -25,6 +25,8 @@ interface SoundingStudioPageProps {
   profiles: ArgoProfileSummary[];
   variable: OceanVariable;
   timeIndex: number;
+  /** platform_id -> anomaly status from the live fleet analysis (labels the switcher). */
+  platformStatus?: Record<string, string>;
   onSelectProfile: (id: string) => void;
   onVariableChange: (v: OceanVariable) => void;
   onClose: () => void;
@@ -35,6 +37,7 @@ export const SoundingStudioPage: React.FC<SoundingStudioPageProps> = ({
   profiles,
   variable,
   timeIndex,
+  platformStatus,
   onSelectProfile,
   onVariableChange,
   onClose,
@@ -248,7 +251,9 @@ export const SoundingStudioPage: React.FC<SoundingStudioPageProps> = ({
                     : p.platform_type === 'glider'
                     ? `🌊 Glider #${p.platform_id} (${p.latitude.toFixed(1)}°N, ${p.longitude.toFixed(1)}°E)`
                     : `📡 Float #${p.platform_id} (${p.latitude.toFixed(1)}°N, ${p.longitude.toFixed(1)}°E)${
-                        p.id.includes('2902345') ? ' 🚨 CRITICAL' : ''
+                        platformStatus?.[p.platform_id]
+                          ? ` — ${platformStatus[p.platform_id].toUpperCase()}`
+                          : ''
                       }`}
                 </option>
               ))}

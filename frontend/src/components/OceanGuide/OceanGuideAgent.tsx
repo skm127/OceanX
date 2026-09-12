@@ -13,6 +13,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { OceanVariable } from '../../types';
 import { chatWithGuide } from '../../services/api';
 import type { GuideChatMessage } from '../../services/api';
+import MiniMarkdown from './MiniMarkdown';
 import './OceanGuideAgent.css';
 
 export interface OceanGuideAgentProps {
@@ -35,6 +36,8 @@ export interface OceanGuideAgentProps {
   onSetProductMode: (mode: any) => void;
   onOpenTransect: () => void;
   onOpenRealtime?: () => void;
+  /** Highest-severity float from the live fleet analysis — drives the guided tour. */
+  topAnomaly?: { platform_id: string; latitude: number; longitude: number; max_delta: number; max_depth: number } | null;
 }
 
 interface ChatMessage {
@@ -65,6 +68,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
   onSetProductMode,
   onOpenTransect,
   onOpenRealtime,
+  topAnomaly,
 }) => {
   const [activeTab, setActiveTab] = useState<'screen' | 'chat' | 'tours' | 'glossary'>('screen');
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -126,24 +130,23 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
   const getLiveScreenExplanation = () => {
     const parts: { title: string; body: string; icon: string; highlight?: string; action?: () => void; actionText?: string }[] = [];
 
-    // Selected float
-    if (selectedProfileId) {
-      if (selectedProfileId === '2902345' || selectedProfileId.includes('2902345')) {
-        parts.push({
-          icon: '🚨',
-          title: 'Selected: Critical Thermal Anomaly (Float #2902345)',
-          body: "You clicked on a robotic probe floating in the Central Bay of Bengal. The supercomputer model thought water would be 26.5°C here, but this robot actually measured 29.2°C at 100m depth! That is a huge +2.7°C hidden heat bubble that satellites completely missed.",
-          highlight: 'Dangerous Subsurface Heatwave (+2.7°C)',
-          action: () => onSetDepth(100),
-          actionText: 'Dive 100m to inspect this heat bubble',
-        });
-      } else {
-        parts.push({
-          icon: '🤖',
-          title: `Selected In-Situ Platform #${selectedProfileId}`,
-          body: `You are inspecting a physical ocean sensor deployed by INCOIS. It records live water temperature and saltiness down to 2,000 meters and transmits its ground-truth findings back to satellites.`,
-        });
-      }
+    // Selected float — status text comes from the LIVE fleet analysis when available.
+    if (selectedProfileId && topAnomaly &&
+        (selectedProfileId === topAnomaly.platform_id || selectedProfileId.includes(topAnomaly.platform_id))) {
+      parts.push({
+        icon: '🚨',
+        title: `Selected: Top Fleet Anomaly (Float #${topAnomaly.platform_id})`,
+        body: `You clicked on a robotic probe floating in the Indian Ocean. The supercomputer model predicted a much cooler layer here, but this robot actually measured water roughly +${topAnomaly.max_delta.toFixed(1)}°C hotter at ${Math.round(topAnomaly.max_depth)}m depth! That is a hidden heat bubble that satellites completely missed.`,
+        highlight: `Top Fleet Anomaly (+${topAnomaly.max_delta.toFixed(1)}°C at ${Math.round(topAnomaly.max_depth)}m)`,
+        action: () => onSetDepth(Math.min(500, Math.max(50, Math.round(topAnomaly.max_depth)))),
+        actionText: `Dive ${Math.round(topAnomaly.max_depth)}m to inspect this heat bubble`,
+      });
+    } else if (selectedProfileId) {
+      parts.push({
+        icon: '🤖',
+        title: `Selected In-Situ Platform #${selectedProfileId.replace(/^argo_|_\d+$/g, '')}`,
+        body: `You are inspecting a physical ocean sensor deployed by INCOIS. It records live water temperature and saltiness down to 2,000 meters and transmits its ground-truth findings back to satellites.`,
+      });
     }
 
     // Probed coordinate
@@ -237,21 +240,28 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
     return parts;
   };
 
-  // 2. Layman Guided Action Tours
-  const GUIDED_TOURS = [
+  // 2. Layman Guided Action Tours — jump target resolved LIVE per render.
+  const guidedTours = [
     {
       id: 'anomaly',
       icon: '🚨',
       title: 'Find the Dangerous Cyclone Heat Bubble',
-      desc: 'Jump directly to Float #2902345 in the Bay of Bengal and dive 100m deep to see hidden heat that satellites missed.',
+      desc: topAnomaly
+        ? `Jump directly to Float #${topAnomaly.platform_id} and dive to its anomalous depth to see hidden heat that satellites missed.`
+        : 'Jump to the fleet\'s most anomalous float and inspect its hidden heat.',
       action: () => {
-        onSelectSector('anomaly_target');
-        onSetDepth(100);
-        onSetVariable('thetao');
-        onSelectArgo('2902345');
-        addAiMessage(
-          "🎯 **Here it is!** We just jumped to Argo Float #2902345 in the Central Bay of Bengal and set depth to 100 meters.\n\nNotice that large warm patch? That's a +2.7°C subsurface heat anomaly. If a cyclone passes over this, it will rapidly intensify because this heat reservoir feeds the storm!"
-        );
+        if (topAnomaly) {
+          onSelectArgo(topAnomaly.platform_id);
+          onSetDepth(Math.min(500, Math.max(50, Math.round(topAnomaly.max_depth))));
+          onSetVariable('thetao');
+          onSelectSector('anomaly_target');
+          addAiMessage(
+            `🎯 **Here it is!** We just jumped to Argo Float #${topAnomaly.platform_id} and set depth to ${Math.round(topAnomaly.max_depth)} meters.\n\nNotice that warm patch? That's a +${topAnomaly.max_delta.toFixed(1)}°C subsurface heat anomaly found by the live fleet analysis. If a cyclone passes over this, it will rapidly intensify because this heat reservoir feeds the storm!`
+          );
+        } else {
+          onSelectSector('anomaly_target');
+          addAiMessage("🎯 **Jumping to the fleet's most anomalous float.** The live analysis is still loading — try again in a moment.");
+        }
       },
     },
     {
@@ -578,7 +588,9 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
                 {messages.map((msg) => (
                   <div key={msg.id} className={`chat-message-row ${msg.sender}`}>
                     <div className="chat-bubble">
-                      <p className="chat-bubble-text">{msg.text}</p>
+                      <div className="chat-bubble-text chat-bubble-md">
+                        <MiniMarkdown text={msg.text} />
+                      </div>
                       {msg.actionLabel && msg.onAction && (
                         <button
                           className="bubble-action-btn"
@@ -638,7 +650,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
                 Click any tour below and the AI Guide will navigate the 3D globe, dive underwater, and explain what is happening:
               </p>
               <div className="tours-grid">
-                {GUIDED_TOURS.map((tour) => (
+                {guidedTours.map((tour) => (
                   <div key={tour.id} className="tour-card" onClick={tour.action}>
                     <div className="tour-card-header">
                       <span className="tour-icon">{tour.icon}</span>

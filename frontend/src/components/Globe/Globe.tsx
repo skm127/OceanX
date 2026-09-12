@@ -30,6 +30,10 @@ interface GlobeProps {
   currentSpeedMax?: number;
   showCurrents?: boolean;
   argoProfiles?: ArgoProfileSummary[];
+  /** Platform markers beyond Argo floats: id, coordinates and display name. */
+  extraPlatforms?: { id: string; platform_id: string; lat: number; lon: number; name: string; kind: 'buoy' | 'glider' }[];
+  /** platform_id -> anomaly status from the fleet-wide analysis; drives marker colors. */
+  platformStatus?: Record<string, string>;
   selectedArgoId?: string | null;
   targetCameraPos?: THREE.Vector3 | null;
   probedCoordinate?: { lat: number; lon: number } | null;
@@ -433,6 +437,8 @@ export default function Globe({
   currentSpeedMax = 0.2,
   showCurrents = false,
   argoProfiles = [],
+  extraPlatforms = [],
+  platformStatus,
   selectedArgoId = null,
   targetCameraPos = null,
   probedCoordinate = null,
@@ -541,6 +547,8 @@ export default function Globe({
           {argoProfiles.length > 0 && onSelectArgo && (
             <ArgoMarkers
               profiles={argoProfiles}
+              extraPlatforms={extraPlatforms}
+              platformStatus={platformStatus}
               selectedId={selectedArgoId}
               onSelect={onSelectArgo}
             />

@@ -31,6 +31,8 @@ services:
       - DATA_DIR=/app/data
       - CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
       - DEBUG=false
+      # AI Guide (SAGAR AI); empty default degrades gracefully to fallback mode
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     healthcheck:
       test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://localhost:8000/api/health/ready')"]
       interval: 30s

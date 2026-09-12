@@ -12,6 +12,8 @@ import './GlobalSearchModal.css';
 interface GlobalSearchModalProps {
   isOpen: boolean;
   argoProfiles: ArgoProfileSummary[];
+  /** Highest-severity float from the live fleet analysis (drives the ANOMALY result). */
+  topAnomaly?: { platform_id: string; latitude: number; longitude: number; max_delta: number } | null;
   onClose: () => void;
   onSelectCoordinate: (lat: number, lon: number, label?: string) => void;
   onSelectArgo: (id: string) => void;
@@ -30,6 +32,7 @@ const REGION_SEARCH_ITEMS = [
 export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   isOpen,
   argoProfiles,
+  topAnomaly,
   onClose,
   onSelectCoordinate,
   onSelectArgo,
@@ -81,13 +84,22 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       }
     }
 
-    // Search anomalies
-    if ('critical anomaly heatwave'.includes(q) || q.includes('heatwave') || q.includes('2902345')) {
+    // Search anomalies — driven by the LIVE fleet analysis, not a hardcoded demo float.
+    const anomalyKeywords = 'critical anomaly heatwave';
+    const anomalyHit =
+      (topAnomaly &&
+        (anomalyKeywords.includes(q) ||
+          q.includes('heatwave') ||
+          q.includes('anomaly') ||
+          q.includes('critical') ||
+          topAnomaly.platform_id.includes(q))) ||
+      (!topAnomaly && q.includes('2902345'));
+    if (anomalyHit && topAnomaly) {
       list.push({
-        id: 'anomaly_2902345',
-        title: '🚨 Critical Subsurface Heatwave (+3.2°C)',
+        id: `anomaly_${topAnomaly.platform_id}`,
+        title: `🚨 Top Fleet Anomaly (Float #${topAnomaly.platform_id}, +${topAnomaly.max_delta.toFixed(1)}°C)`,
         category: 'ANOMALY',
-        sub: 'Argo #2902345 (14.5°N, 84.8°E) — Bay of Bengal',
+        sub: `Argo #${topAnomaly.platform_id} (${topAnomaly.latitude.toFixed(1)}°N, ${topAnomaly.longitude.toFixed(1)}°E) — live fleet analysis`,
         action: () => {
           onSelectSector('anomaly_target');
           onClose();
@@ -130,7 +142,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     });
 
     return list.slice(0, 10);
-  }, [query, argoProfiles, onSelectCoordinate, onSelectArgo, onSelectSector, onClose]);
+  }, [query, argoProfiles, topAnomaly, onSelectCoordinate, onSelectArgo, onSelectSector, onClose]);
 
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {

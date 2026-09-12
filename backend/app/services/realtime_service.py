@@ -154,7 +154,8 @@ class RealtimeOceanService:
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "OCEAN-X-INCOIS/1.0"})
             ctx = ssl._create_unverified_context()
-            with urllib.request.urlopen(req, context=ctx, timeout=12) as resp:
+            # Ifremer index queries routinely take 10-15s; allow up to 20s.
+            with urllib.request.urlopen(req, context=ctx, timeout=20) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 rows = data.get("table", {}).get("rows", [])
 
@@ -192,7 +193,15 @@ class RealtimeOceanService:
 
         except Exception as e:
             logger.info("Ifremer ERDDAP live query fallback (%s)", e)
+            # Cache the baseline fallback too so a transient upstream outage
+            # doesn't re-trigger the slow upstream call on every UI poll.
+            fallback = self._fallback_fleet(now)
+            self._cache[cache_key] = {"timestamp": now, "data": fallback}
+            return fallback
 
+        return self._fallback_fleet(now)
+
+    def _fallback_fleet(self, now: datetime) -> Dict[str, Any]:
         return {
             "status": "baseline_active",
             "source": "INCOIS Operational Observation Network (OON)",

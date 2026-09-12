@@ -32,7 +32,7 @@ const JOURNEY_STEPS = [
     subtitle: 'When the ocean hides dangerous heat below the surface',
     description: 'Marine heatwaves can be invisible from space. OCEAN-X compares model predictions with Argo observations to detect when reality diverges from the forecast — revealing trapped subsurface heat that satellites miss entirely.',
     camera: { lat: 14.5, lon: 84.8, alt: 3.8 },
-    highlight: 'Float #2902345 detected a +3.2°C anomaly at 110m depth — a critical subsurface heatwave.',
+    highlight: 'The fleet analysis detects subsurface heatwaves by comparing Argo observations against the NEMO model — press 4 to jump to the worst one live.',
   },
   {
     id: 4,

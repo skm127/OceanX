@@ -744,3 +744,36 @@
   color: #94a3b8;
   letter-spacing: 0.02em;
 }
+
+/* Markdown-formatted AI replies (MultiMarkdown wrapper) */
+.chat-bubble-md {
+  font-style: normal;
+  letter-spacing: normal;
+}
+
+.chat-bubble-md p {
+  margin: 0 0 6px 0;
+}
+
+.chat-bubble-md p:last-child,
+.chat-bubble-md ul:last-child {
+  margin-bottom: 0;
+}
+
+.chat-bubble-md strong {
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
+.chat-bubble-md code {
+  background: rgba(148, 163, 184, 0.15);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.chat-bubble-md ul {
+  margin: 0 0 6px 0;
+  padding-left: 16px;
+}

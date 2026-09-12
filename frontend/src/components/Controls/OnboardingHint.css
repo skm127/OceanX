@@ -12,7 +12,9 @@
   color: #e2e8f0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 16px rgba(0, 229, 255, 0.2);
-  z-index: 1050;
+  /* Below the AI guide panel (z-index 1000) so the user-opened guide always
+     wins click priority where the two overlap on small viewports. */
+  z-index: 900;
   animation: hintSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

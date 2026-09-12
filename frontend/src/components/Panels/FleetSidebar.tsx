@@ -6,8 +6,23 @@ import { useState, useMemo } from 'react';
 import type { ArgoProfileSummary } from '../../types';
 import './FleetSidebar.css';
 
+export interface SensorSummaryLite {
+  id: string;
+  type: 'argo' | 'moored_buoy' | 'glider';
+  platform_id: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+}
+
 interface FleetSidebarProps {
   profiles: ArgoProfileSummary[];
+  /** Live moored-buoy platforms from /api/observations/all. */
+  buoys?: SensorSummaryLite[];
+  /** Live glider platforms from /api/observations/all. */
+  gliders?: SensorSummaryLite[];
+  /** platform_id -> anomaly status from the fleet-wide analysis. */
+  platformStatus?: Record<string, string>;
   selectedId: string | null;
   isOpen: boolean;
   railOpen?: boolean;
@@ -15,20 +30,28 @@ interface FleetSidebarProps {
   onSelect: (id: string) => void;
 }
 
-const MOORED_BUOYS = [
-  { id: 'buoy_BD08', platform_id: 'BD08', name: 'Bay of Bengal OMNI Buoy', basin: 'Bay of Bengal', latitude: 13.0, longitude: 84.0, max_depth: 500, type: 'INCOIS OMNI', status: 'warning', statusLabel: 'ELEVATED TCHP' },
-  { id: 'buoy_BD11', platform_id: 'BD11', name: 'Central Bay of Bengal OMNI', basin: 'Bay of Bengal', latitude: 15.5, longitude: 86.5, max_depth: 500, type: 'INCOIS OMNI', status: 'nominal', statusLabel: 'NOMINAL' },
-  { id: 'buoy_AD02', platform_id: 'AD02', name: 'Arabian Sea OMNI Buoy', basin: 'Arabian Sea', latitude: 15.0, longitude: 69.0, max_depth: 500, type: 'INCOIS OMNI', status: 'nominal', statusLabel: 'NOMINAL' },
-  { id: 'buoy_AD07', platform_id: 'AD07', name: 'Lakshadweep RAMA Buoy', basin: 'Arabian Sea', latitude: 10.5, longitude: 72.5, max_depth: 200, type: 'MoES RAMA', status: 'nominal', statusLabel: 'NOMINAL' },
-  { id: 'buoy_RAMA_EQ', platform_id: 'RAMA_EQ', name: 'Equatorial RAMA Buoy', basin: 'Equatorial Indian Ocean', latitude: 0.0, longitude: 80.5, max_depth: 200, type: 'MoES RAMA', status: 'nominal', statusLabel: 'NOMINAL' },
-];
+/** Display metadata only — positions/counts always come from the backend. */
+const PLATFORM_META: Record<string, { name: string; basin: string; type: string }> = {
+  BD08: { name: 'Bay of Bengal OMNI Buoy', basin: 'Bay of Bengal', type: 'INCOIS OMNI' },
+  BD11: { name: 'Central Bay of Bengal OMNI', basin: 'Bay of Bengal', type: 'INCOIS OMNI' },
+  AD02: { name: 'Arabian Sea OMNI Buoy', basin: 'Arabian Sea', type: 'INCOIS OMNI' },
+  AD07: { name: 'Lakshadweep RAMA Buoy', basin: 'Arabian Sea', type: 'MoES RAMA' },
+  RAMA_EQ: { name: 'Equatorial RAMA Buoy', basin: 'Equatorial Indian Ocean', type: 'MoES RAMA' },
+  GLIDER_BOB_01: { name: 'Visakhapatnam Shelf Coastal Glider', basin: 'Bay of Bengal', type: 'Ocean Glider' },
+};
 
-const GLIDER_MISSIONS = [
-  { id: 'glider_bob_01', platform_id: 'GLIDER_BOB_01', name: 'Visakhapatnam Shelf Coastal Glider', basin: 'Bay of Bengal', latitude: 16.0, longitude: 85.5, max_depth: 200, type: 'Ocean Glider', status: 'nominal', statusLabel: 'ACTIVE SAWTOOTH' },
-];
+function statusFor(platform_id: string, platformStatus?: Record<string, string>): { cls: string; label: string } {
+  const s = platformStatus?.[platform_id];
+  if (s === 'CRITICAL_ANOMALY') return { cls: 'critical', label: 'CRITICAL' };
+  if (s === 'WARNING') return { cls: 'warning', label: 'WARNING' };
+  return { cls: 'nominal', label: 'NOMINAL' };
+}
 
 export default function FleetSidebar({
   profiles,
+  buoys = [],
+  gliders = [],
+  platformStatus,
   selectedId,
   isOpen,
   railOpen = false,
@@ -64,7 +87,7 @@ export default function FleetSidebar({
     return null;
   }
 
-  const totalPlatforms = profiles.length + MOORED_BUOYS.length + GLIDER_MISSIONS.length;
+  const totalPlatforms = profiles.length + buoys.length + gliders.length;
 
   return (
     <div className={`fleet-sidebar ${railOpen ? 'with-layer-rail' : ''}`}>
@@ -115,7 +138,7 @@ export default function FleetSidebar({
             cursor: 'pointer',
           }}
         >
-          BUOYS ({MOORED_BUOYS.length})
+          BUOYS ({buoys.length})
         </button>
         <button
           className={`fleet-tab-btn ${activeTab === 'gliders' ? 'active' : ''}`}
@@ -133,7 +156,7 @@ export default function FleetSidebar({
             cursor: 'pointer',
           }}
         >
-          GLIDER ({GLIDER_MISSIONS.length})
+          GLIDER ({gliders.length})
         </button>
       </div>
 
@@ -145,10 +168,7 @@ export default function FleetSidebar({
               {basin.name} ({basin.count})
             </div>
             {basin.list.map((p) => {
-              const isCritical = p.platform_id === '2902345';
-              const isWarning = p.platform_id === '2904001';
-              const statusClass = isCritical ? 'critical' : isWarning ? 'warning' : 'nominal';
-              const statusLabel = isCritical ? 'CRITICAL' : isWarning ? 'WARNING' : 'NOMINAL';
+              const { cls: statusClass, label: statusLabel } = statusFor(p.platform_id, platformStatus);
               const isSelected = selectedId === p.id;
 
               return (
@@ -179,34 +199,35 @@ export default function FleetSidebar({
           </div>
         ))}
 
-        {/* Tab 2: Moored Buoys */}
+        {/* Tab 2: Moored Buoys — live positions from /api/observations/all */}
         {activeTab === 'buoys' && (
           <div className="basin-section">
-            <div className="basin-title">Moored Surface & Subsurface Buoys (5)</div>
-            {MOORED_BUOYS.map((b) => {
+            <div className="basin-title">Moored Surface & Subsurface Buoys ({buoys.length})</div>
+            {buoys.map((b) => {
+              const meta = PLATFORM_META[b.platform_id] ?? { name: b.platform_id, basin: '—', type: 'Moored Buoy' };
               const isSelected = selectedId === b.id;
               return (
                 <div
                   key={b.id}
-                  className={`float-card ${b.status} ${isSelected ? 'active' : ''}`}
+                  className={`float-card nominal ${isSelected ? 'active' : ''}`}
                   onClick={() => onSelect(b.id)}
                 >
                   <div className="float-card-left">
                     <div className="float-card-id">
-                      <span className={`float-status-dot ${b.status}`} />
+                      <span className="float-status-dot nominal" />
                       <span>#{b.platform_id}</span>
-                      <span style={{ fontSize: '9px', color: '#94a3b8', marginLeft: '4px' }}>{b.type}</span>
+                      <span style={{ fontSize: '9px', color: '#94a3b8', marginLeft: '4px' }}>{meta.type}</span>
                     </div>
                     <span className="float-card-coords">
-                      {b.latitude.toFixed(1)}°N, {b.longitude.toFixed(1)}°E • {b.basin}
+                      {b.latitude.toFixed(1)}°N, {b.longitude.toFixed(1)}°E • {meta.basin}
                     </span>
                   </div>
 
                   <div className="float-card-right">
-                    <span className={`float-card-tag ${b.status}`}>
-                      {b.statusLabel}
+                    <span className="float-card-tag nominal">
+                      REPORTING
                     </span>
-                    <span className="float-card-depth">{b.max_depth}m chain</span>
+                    <span className="float-card-depth">{meta.name}</span>
                   </div>
                 </div>
               );
@@ -214,11 +235,12 @@ export default function FleetSidebar({
           </div>
         )}
 
-        {/* Tab 3: Gliders */}
+        {/* Tab 3: Gliders — live positions from /api/observations/all */}
         {activeTab === 'gliders' && (
           <div className="basin-section">
-            <div className="basin-title">Underwater Autonomous Gliders (1)</div>
-            {GLIDER_MISSIONS.map((g) => {
+            <div className="basin-title">Underwater Autonomous Gliders ({gliders.length})</div>
+            {gliders.map((g) => {
+              const meta = PLATFORM_META[g.platform_id] ?? { name: g.platform_id, basin: '—', type: 'Ocean Glider' };
               const isSelected = selectedId === g.id;
               return (
                 <div
@@ -233,15 +255,15 @@ export default function FleetSidebar({
                       <span style={{ fontSize: '9px', color: '#34d399', marginLeft: '4px' }}>Sawtooth</span>
                     </div>
                     <span className="float-card-coords">
-                      {g.latitude.toFixed(1)}°N, {g.longitude.toFixed(1)}°E • {g.name}
+                      {g.latitude.toFixed(1)}°N, {g.longitude.toFixed(1)}°E • {meta.name}
                     </span>
                   </div>
 
                   <div className="float-card-right">
                     <span className="float-card-tag nominal">
-                      {g.statusLabel}
+                      ACTIVE
                     </span>
-                    <span className="float-card-depth">{g.max_depth}m diving</span>
+                    <span className="float-card-depth">{meta.type}</span>
                   </div>
                 </div>
               );
