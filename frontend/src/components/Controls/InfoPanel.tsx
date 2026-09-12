@@ -1,6 +1,7 @@
 /**
  * InfoPanel — Shows current view state in the top-left of the viewport.
  */
+import { MapPin } from 'lucide-react';
 import './InfoPanel.css';
 import type { OceanVariable } from '../../types';
 import { VARIABLE_LABELS, VARIABLE_UNITS } from '../../types';
@@ -81,18 +82,18 @@ export default function InfoPanel({
       {showCurrents && (
         <div className="info-row">
           <span className="info-label">Currents</span>
-          <span className="info-value current-active">● Active</span>
+          <span className="info-value current-active">Active</span>
         </div>
       )}
       {onOpenFleet && (
         <button className="hud-fleet-btn" onClick={onOpenFleet} title="Open In-Situ Float Fleet Drawer">
-          <span>📍</span>
+          <MapPin size={12} />
           <span>VIEW ARGO FLEET ({fleetCount})</span>
         </button>
       )}
       {loading && (
         <div className="info-row">
-          <span className="info-loading">● Loading...</span>
+          <span className="info-loading">Loading...</span>
         </div>
       )}
     </div>

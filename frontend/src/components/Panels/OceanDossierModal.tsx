@@ -4,6 +4,7 @@
  * Contextual investigation panel triggered by right-clicking anywhere on the ocean surface.
  */
 import React, { useState, useEffect, useRef } from 'react';
+import { Satellite, AlertTriangle, MapPin, Activity, GitCompare, Split, Maximize2 } from 'lucide-react';
 import useModalA11y from '../../hooks/useModalA11y';
 import { getOceanDossier } from '../../services/api';
 import type { OceanDossierResponse } from '../../types';
@@ -79,7 +80,10 @@ export const OceanDossierModal: React.FC<OceanDossierModalProps> = ({
 
         <div className="dossier-header">
           <div className="dossier-badge-row">
-            <span className="dossier-type-tag">🛰 IN-SITU & MODEL FUSION</span>
+            <span className="dossier-type-tag">
+              <Satellite size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              IN-SITU & MODEL FUSION
+            </span>
             <span className="dossier-date-tag">{date}</span>
           </div>
           <div className="dossier-title-row">
@@ -106,7 +110,7 @@ export const OceanDossierModal: React.FC<OceanDossierModalProps> = ({
 
         {error && (
           <div className="dossier-error">
-            <span>⚠ {error}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={14} /> {error}</span>
           </div>
         )}
 
@@ -181,7 +185,7 @@ export const OceanDossierModal: React.FC<OceanDossierModalProps> = ({
                       onClick={() => onSelectArgo && onSelectArgo(f.id)}
                       title={`Target Float #${f.platform_id} (${f.distance_km} km away)`}
                     >
-                      <span className="chip-icon">📍</span>
+                      <span className="chip-icon"><MapPin size={12} /></span>
                       <span className="chip-name">Argo #{f.platform_id}</span>
                       <span className="chip-dist">{f.distance_km} km</span>
                     </div>
@@ -204,7 +208,8 @@ export const OceanDossierModal: React.FC<OceanDossierModalProps> = ({
                   onClose();
                 }}
               >
-                📈 VERTICAL SOUNDING
+                <Activity size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                VERTICAL SOUNDING
               </button>
 
               {dossier.ocean_context.nearest_float_id && onSelectArgo && (
@@ -215,7 +220,8 @@ export const OceanDossierModal: React.FC<OceanDossierModalProps> = ({
                     onClose();
                   }}
                 >
-                  ⚖ COMPARE MODEL
+                  <GitCompare size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                  COMPARE MODEL
                 </button>
               )}
 
@@ -227,7 +233,8 @@ export const OceanDossierModal: React.FC<OceanDossierModalProps> = ({
                     onClose();
                   }}
                 >
-                  ⟂ TRANSECT FROM HERE
+                  <Split size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                  TRANSECT FROM HERE
                 </button>
               )}
 
@@ -239,7 +246,8 @@ export const OceanDossierModal: React.FC<OceanDossierModalProps> = ({
                     onClose();
                   }}
                 >
-                  ⬚ REGION ANALYSIS
+                  <Maximize2 size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                  REGION ANALYSIS
                 </button>
               )}
             </div>

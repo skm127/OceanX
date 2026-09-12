@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Crosshair, Search, ArrowRight } from 'lucide-react';
 import useModalA11y from '../../hooks/useModalA11y';
 import { getCoLocationResults, type CoLocationMatch } from '../../services/api';
 import './CoLocationModal.css';
@@ -73,7 +74,7 @@ export const CoLocationModal: React.FC<CoLocationModalProps> = ({
         <div className="coloc-header">
 
           <div className="coloc-title-group">
-            <span className="coloc-badge">🎯 CO-LOCATION ENGINE</span>
+            <span className="coloc-badge"><Crosshair size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />CO-LOCATION ENGINE</span>
             <span className="coloc-sub">Spatial-Temporal Model–Observation Matching</span>
           </div>
           <button className="coloc-close" onClick={onClose}>✕</button>
@@ -124,7 +125,11 @@ export const CoLocationModal: React.FC<CoLocationModalProps> = ({
           </div>
 
           <button className="coloc-search-btn" onClick={runSearch} disabled={loading}>
-            {loading ? 'Searching...' : '🔍 Find Co-Located Observations'}
+            {loading ? 'Searching...' : (
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Search size={14} /> Find Co-Located Observations
+              </span>
+            )}
           </button>
 
           {/* Results Table */}
@@ -169,7 +174,7 @@ export const CoLocationModal: React.FC<CoLocationModalProps> = ({
                             onClick={() => onJumpToSensor(r.latitude, r.longitude)}
                             title="Fly to this sensor"
                           >
-                            ➔
+                            <ArrowRight size={14} />
                           </button>
                         </td>
                       </tr>

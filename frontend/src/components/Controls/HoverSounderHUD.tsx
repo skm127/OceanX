@@ -50,14 +50,14 @@ export const HoverSounderHUD: React.FC<HoverSounderHUDProps> = ({
   const unit = variable === 'thetao' ? '°C' : variable === 'so' ? 'PSU' : 'm/s';
 
   // Citizen vs Scientist dual-lens explanations
-  let statusBadge = '🟢 Nominal';
+  let statusBadge = 'Nominal';
   let badgeClass = 'nominal';
   let title = 'Normal Ocean Condition';
   let explanation = '';
 
   if (variable === 'thetao') {
     if (sampledValue >= 29.5) {
-      statusBadge = '🚨 High Thermal Risk';
+      statusBadge = 'High Thermal Risk';
       badgeClass = 'critical';
       title = explainMode === 'citizen' ? 'Trapped Heat Reservoir' : 'Elevated Isotherm Stratification';
       explanation =
@@ -65,7 +65,7 @@ export const HoverSounderHUD: React.FC<HoverSounderHUDProps> = ({
           ? 'Exceptionally warm water at this layer. Hidden fuel that rapidly intensifies tropical storms.'
           : `Isotherm depth anomalies exceed +2.2σ. Tropical Cyclone Heat Potential (TCHP) elevated.`;
     } else if (sampledValue >= 27.0) {
-      statusBadge = '🟢 Optimal State';
+      statusBadge = 'Optimal State';
       badgeClass = 'nominal';
       title = explainMode === 'citizen' ? 'Tropical Surface Water' : 'Mixed Layer Thermocline Core';
       explanation =
@@ -73,7 +73,7 @@ export const HoverSounderHUD: React.FC<HoverSounderHUDProps> = ({
           ? 'Calm, standard ocean temperatures favorable for coastal fisheries and shipping.'
           : `Stable epipelagic layer with normal geostrophic heat budget balance.`;
     } else {
-      statusBadge = '🔵 Cool Horizon';
+      statusBadge = 'Cool Horizon';
       badgeClass = 'cool';
       title = explainMode === 'citizen' ? 'Deep Cool Water' : 'Mesopelagic Thermocline Gradient';
       explanation =
@@ -83,7 +83,7 @@ export const HoverSounderHUD: React.FC<HoverSounderHUDProps> = ({
     }
   } else if (variable === 'so') {
     if (sampledValue < 33.0) {
-      statusBadge = '💧 Fresh Inflow';
+      statusBadge = 'Fresh Inflow';
       badgeClass = 'info';
       title = explainMode === 'citizen' ? 'River Runoff Plume' : 'Low-Salinity Buoyant Lens';
       explanation =
@@ -91,7 +91,7 @@ export const HoverSounderHUD: React.FC<HoverSounderHUDProps> = ({
           ? 'Freshwater discharge from major rivers (Ganges-Brahmaputra) creating a surface barrier.'
           : `Salinity stratified barrier layer suppressing vertical convective heat exchange.`;
     } else {
-      statusBadge = '🧂 High Salinity';
+      statusBadge = 'High Salinity';
       badgeClass = 'nominal';
       title = explainMode === 'citizen' ? 'Dense Salty Seawater' : 'Arabian High-Salinity Water (ASW)';
       explanation =

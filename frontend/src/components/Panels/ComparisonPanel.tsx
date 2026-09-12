@@ -4,6 +4,21 @@
  * ML Anomaly Intelligence, Root Cause Diagnosis, and INCOIS Data Export.
  */
 import { useState, useEffect, useRef } from 'react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Thermometer,
+  Wind,
+  Compass,
+  Droplets,
+  Maximize2,
+  Activity,
+  Layers,
+  Cpu,
+  FileText,
+  FileSpreadsheet,
+} from 'lucide-react';
 import useModalA11y from '../../hooks/useModalA11y';
 import { compareProfile, getArgoProfile, detectAnomaly } from '../../services/api';
 
@@ -162,11 +177,20 @@ export default function ComparisonPanel({
           <div className="header-badge-row">
             <span className="platform-tag">IN-SITU OBSERVATION</span>
             {isCriticalAnomaly ? (
-              <span className="anomaly-badge critical">🔴 CRITICAL ANOMALY</span>
+              <span className="anomaly-badge critical">
+                <AlertCircle size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                CRITICAL ANOMALY
+              </span>
             ) : isWarningAnomaly ? (
-              <span className="anomaly-badge warning">🟡 WARNING DIVERGENCE</span>
+              <span className="anomaly-badge warning">
+                <AlertTriangle size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                WARNING DIVERGENCE
+              </span>
             ) : (
-              <span className="anomaly-badge nominal">🟢 MODEL NOMINAL</span>
+              <span className="anomaly-badge nominal">
+                <CheckCircle2 size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                MODEL NOMINAL
+              </span>
             )}
           </div>
           <h3>
@@ -181,10 +205,10 @@ export default function ComparisonPanel({
           </span>
           {profile?.surface_meteorology && (
             <div className="surface-met-strip" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px', fontSize: '11px', color: '#38bdf8' }}>
-              <span>🌡️ Air: {profile.surface_meteorology.air_temperature}°C</span>
-              <span>💨 Wind: {profile.surface_meteorology.wind_speed_kts} kts</span>
-              <span>🧭 SLP: {profile.surface_meteorology.sea_level_pressure_hpa} hPa</span>
-              <span>💧 RH: {profile.surface_meteorology.relative_humidity_pct}%</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Thermometer size={12} /> Air: {profile.surface_meteorology.air_temperature}°C</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Wind size={12} /> Wind: {profile.surface_meteorology.wind_speed_kts} kts</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Compass size={12} /> SLP: {profile.surface_meteorology.sea_level_pressure_hpa} hPa</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Droplets size={12} /> RH: {profile.surface_meteorology.relative_humidity_pct}%</span>
             </div>
           )}
         </div>
@@ -195,7 +219,8 @@ export default function ComparisonPanel({
               onClick={onOpenFullPage}
               title="Open in dedicated full-page In-Situ Sounding Studio"
             >
-              ⛶ FULL PAGE
+              <Maximize2 size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              FULL PAGE
             </button>
           )}
           <button className="close-btn" onClick={onClose} title="Close Panel">
@@ -209,11 +234,22 @@ export default function ComparisonPanel({
         <div className={`anomaly-hero-banner ${isCriticalAnomaly ? 'critical' : isWarningAnomaly ? 'warning' : 'nominal'}`}>
           <div className="anomaly-hero-top">
             <span className="anomaly-hero-title">
-              {isCriticalAnomaly
-                ? '⚡ CRITICAL MODEL DIVERGENCE DETECTED'
-                : isWarningAnomaly
-                ? '⚠️ MODERATE PROFILE DRIFT'
-                : '✓ MODEL REANALYSIS CONGRUENT'}
+              {isCriticalAnomaly ? (
+                <>
+                  <AlertCircle size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                  CRITICAL MODEL DIVERGENCE DETECTED
+                </>
+              ) : isWarningAnomaly ? (
+                <>
+                  <AlertTriangle size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                  MODERATE PROFILE DRIFT
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                  MODEL REANALYSIS CONGRUENT
+                </>
+              )}
             </span>
             <span className="anomaly-score-pill">
               ML Score: {anomalyAnalysis.anomaly_score.toFixed(2)} / 1.00
@@ -224,7 +260,10 @@ export default function ComparisonPanel({
           </p>
           {isCriticalAnomaly && (
             <div className="anomaly-advisory-box critical-advisory">
-              <div className="advisory-header">🚨 CYCLONE & INCOIS ACTION ADVISORY:</div>
+              <div className="advisory-header">
+                <AlertCircle size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                CYCLONE & INCOIS ACTION ADVISORY:
+              </div>
               <div className="advisory-item">
                 <span className="advisory-dot">●</span>
                 <span><strong>Cyclone Potential:</strong> Subsurface heat pool between 80m–220m prevents cold upwelling, providing fuel for rapid tropical cyclone intensification.</span>
@@ -237,7 +276,10 @@ export default function ComparisonPanel({
           )}
           {isWarningAnomaly && (
             <div className="anomaly-advisory-box warning-advisory">
-              <div className="advisory-header">⚠️ SEASONAL MONITORING ADVISORY:</div>
+              <div className="advisory-header">
+                <AlertTriangle size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                SEASONAL MONITORING ADVISORY:
+              </div>
               <div className="advisory-item">
                 <span className="advisory-dot">●</span>
                 <span><strong>Thermocline Drift:</strong> Moderate subsurface displacement offshore Mumbai. Automated 24h tracking active.</span>
@@ -246,7 +288,10 @@ export default function ComparisonPanel({
           )}
           {!isCriticalAnomaly && !isWarningAnomaly && (
             <div className="anomaly-advisory-box nominal-advisory">
-              <div className="advisory-header">✓ VALIDATION: MODEL REANALYSIS VERIFIED</div>
+              <div className="advisory-header">
+                <CheckCircle2 size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                VALIDATION: MODEL REANALYSIS VERIFIED
+              </div>
               <div className="advisory-text">In-situ observations match the NEMO forecast within sensor tolerance. Simulation verified as operationally accurate.</div>
             </div>
           )}
@@ -297,19 +342,22 @@ export default function ComparisonPanel({
           className={`tab-btn ${activeTab === 'comparison' ? 'active' : ''}`}
           onClick={() => setActiveTab('comparison')}
         >
-          ⚡ Vertical Profile
+          <Activity size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+          Vertical Profile
         </button>
         <button
           className={`tab-btn ${activeTab === 'table' ? 'active' : ''}`}
           onClick={() => setActiveTab('table')}
         >
-          📋 Layer Matrix ({comparisons.length})
+          <Layers size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+          Layer Matrix ({comparisons.length})
         </button>
         <button
           className={`tab-btn ${activeTab === 'intelligence' ? 'active' : ''}`}
           onClick={() => setActiveTab('intelligence')}
         >
-          🔬 ML Features
+          <Cpu size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+          ML Features
         </button>
       </div>
 
@@ -320,7 +368,12 @@ export default function ComparisonPanel({
         </div>
       )}
 
-      {error && <div className="panel-error">⚠ {error}</div>}
+      {error && (
+        <div className="panel-error">
+          <AlertTriangle size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+          {error}
+        </div>
+      )}
 
       {!loading && !error && comparison && (
         <div className="panel-body">
@@ -549,7 +602,10 @@ export default function ComparisonPanel({
                       </td>
                       <td>
                         {c.anomaly_flag ? (
-                          <span className="tag-anomaly">⚠ ANOMALY</span>
+                          <span className="tag-anomaly">
+                            <AlertTriangle size={10} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />
+                            ANOMALY
+                          </span>
                         ) : (
                           <span className="tag-ok">MATCH</span>
                         )}
@@ -570,12 +626,18 @@ export default function ComparisonPanel({
                     <p style={{ color: '#e2e8f0', fontSize: '13px', lineHeight: '1.6' }}>
                       {anomalyAnalysis.severity === 'HIGH' ? (
                         <>
-                          <strong style={{ color: '#fca5a5' }}>🚨 Significant Subsurface Warming Detected: </strong>
+                          <strong style={{ color: '#fca5a5' }}>
+                            <AlertCircle size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                            Significant Subsurface Warming Detected:{' '}
+                          </strong>
                           Ocean buoys recorded water that is significantly warmer than normal at <strong>{anomalyAnalysis.features.max_layer_depth} meters depth</strong> (divergence of +{anomalyAnalysis.features.mean_delta.toFixed(1)}{unit}). This trapped subsurface heat acts as high-octane fuel for tropical cyclones and shifts fish migration patterns.
                         </>
                       ) : (
                         <>
-                          <strong style={{ color: '#86efac' }}>🟢 Normal Ocean Conditions: </strong>
+                          <strong style={{ color: '#86efac' }}>
+                            <CheckCircle2 size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                            Normal Ocean Conditions:{' '}
+                          </strong>
                           The computer simulation is matching real robotic buoys within a minimal difference of {anomalyAnalysis.features.mean_delta.toFixed(2)}{unit}. Ocean stratification is stable.
                         </>
                       )}
@@ -640,10 +702,12 @@ export default function ComparisonPanel({
           {/* Dossier Export Actions */}
           <div className="export-actions-row">
             <button className="export-btn json" onClick={exportJSON} title="Download Full JSON Dossier">
-              📄 Export INCOIS Dossier (JSON)
+              <FileText size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+              Export INCOIS Dossier (JSON)
             </button>
             <button className="export-btn csv" onClick={exportCSV} title="Download Depth Profile CSV">
-              📊 Export Profile (CSV)
+              <FileSpreadsheet size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+              Export Profile (CSV)
             </button>
           </div>
         </div>

@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Navigation, Waves, Radio, CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react';
 import useModalA11y from '../../hooks/useModalA11y';
 import { getRealtimeOcean, getRealtimeFleet } from '../../services/api';
 import type { LiveOceanResponse, LiveFleetResponse } from '../../types';
@@ -154,7 +155,8 @@ export const RealtimePredictionModal: React.FC<RealtimePredictionModalProps> = (
               }}
               title="Align 3D Globe camera to this spot"
             >
-              📍 Fly 3D Globe Here
+              <Navigation size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              Fly 3D Globe Here
             </button>
             <button className="rt-close-btn" onClick={onClose}>
               ✕
@@ -188,13 +190,15 @@ export const RealtimePredictionModal: React.FC<RealtimePredictionModalProps> = (
             className={`rt-tab ${activeTab === 'forecast' ? 'active' : ''}`}
             onClick={() => setActiveTab('forecast')}
           >
-            🌊 Real-Time Waves, Currents & 72h Predictions
+            <Waves size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+            Real-Time Waves, Currents & 72h Predictions
           </button>
           <button
             className={`rt-tab ${activeTab === 'fleet' ? 'active' : ''}`}
             onClick={() => setActiveTab('fleet')}
           >
-            📡 Live In-Situ Argo Fleet ({fleetData?.total_profiles_found || 14} active)
+            <Radio size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+            Live In-Situ Argo Fleet ({fleetData?.total_profiles_found || 14} active)
           </button>
         </div>
 
@@ -202,18 +206,30 @@ export const RealtimePredictionModal: React.FC<RealtimePredictionModalProps> = (
         {!loading && activeTab === 'forecast' && oceanData && (
           <div className={`rt-provenance-banner ${oceanData.status === 'live' ? 'live' : 'fallback'}`}>
             {oceanData.status === 'live' ? (
-              <span>🟢 <strong>LIVE DATA:</strong> Connected to upstream network ({oceanData.source})</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={13} style={{ color: '#4ade80' }} />
+                <strong>LIVE DATA:</strong> Connected to upstream network ({oceanData.source})
+              </span>
             ) : (
-              <span>🟡 <strong>CALIBRATED BASELINE:</strong> Upstream network offline. Displaying synthesized physics baseline ({oceanData.source})</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <AlertTriangle size={13} style={{ color: '#facc15' }} />
+                <strong>CALIBRATED BASELINE:</strong> Upstream network offline. Displaying synthesized physics baseline ({oceanData.source})
+              </span>
             )}
           </div>
         )}
         {!loading && activeTab === 'fleet' && fleetData && (
           <div className={`rt-provenance-banner ${fleetData.status === 'live' ? 'live' : 'fallback'}`}>
             {fleetData.status === 'live' ? (
-              <span>🟢 <strong>LIVE FLEET:</strong> Connected to Ifremer GDAC ERDDAP</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={13} style={{ color: '#4ade80' }} />
+                <strong>LIVE FLEET:</strong> Connected to Ifremer GDAC ERDDAP
+              </span>
             ) : (
-              <span>🟡 <strong>CACHED SNAPSHOT:</strong> ERDDAP offline. Displaying INCOIS baseline observation network.</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <AlertTriangle size={13} style={{ color: '#facc15' }} />
+                <strong>CACHED SNAPSHOT:</strong> ERDDAP offline. Displaying INCOIS baseline observation network.
+              </span>
             )}
           </div>
         )}
@@ -229,7 +245,7 @@ export const RealtimePredictionModal: React.FC<RealtimePredictionModalProps> = (
 
           {error && (
             <div className="rt-error">
-              <span>⚠ {error}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={14} /> {error}</span>
             </div>
           )}
 
@@ -379,7 +395,7 @@ export const RealtimePredictionModal: React.FC<RealtimePredictionModalProps> = (
               {/* Advisory Card */}
               {currentPred && (
                 <div className="rt-advisory-card">
-                  <div className="advisory-icon">⚡</div>
+                  <div className="advisory-icon"><AlertCircle size={20} /></div>
                   <div className="advisory-content">
                     <h5>72-HOUR OPERATIONAL PREDICTION SUMMARY</h5>
                     <p>{currentPred.recommendation}</p>

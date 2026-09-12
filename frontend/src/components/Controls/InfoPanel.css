@@ -2,15 +2,15 @@
   position: absolute;
   top: 14px;
   left: 14px;
-  background: rgba(3, 7, 18, 0.88);
-  border: 1px solid rgba(56, 189, 248, 0.28);
+  background: rgba(10, 10, 10, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 6px;
   padding: 10px 14px;
   min-width: 200px;
   z-index: 20;
   backdrop-filter: blur(14px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-family: 'Geist Mono', ui-monospace, Menlo, monospace;
 }
 
 .info-panel.with-layer-rail {
@@ -22,11 +22,11 @@
   display: block;
   font-size: 8.5px;
   letter-spacing: 1.5px;
-  color: #00f0ff;
+  color: var(--text-dim, #a1a1aa);
   font-weight: 700;
   margin-bottom: 8px;
   padding-bottom: 4px;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .info-row {
@@ -58,7 +58,7 @@
 }
 
 .info-loading {
-  color: #00f0ff;
+  color: var(--text-dim, #a1a1aa);
   font-size: 10px;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -80,7 +80,7 @@
   width: 65px;
   height: 4px;
   -webkit-appearance: none;
-  background: rgba(56, 189, 248, 0.25);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
   outline: none;
   cursor: pointer;
@@ -91,14 +91,14 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #00f0ff;
-  box-shadow: 0 0 6px #00f0ff;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
   cursor: pointer;
 }
 
 .opacity-val {
   font-size: 10px;
-  color: #00f0ff;
+  color: var(--text-dim, #a1a1aa);
   font-weight: 700;
   min-width: 26px;
 }
@@ -106,9 +106,9 @@
 .hud-fleet-btn {
   margin-top: 8px;
   width: 100%;
-  background: rgba(0, 240, 255, 0.1);
-  border: 1px solid rgba(0, 240, 255, 0.35);
-  color: #00f0ff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-dim, #a1a1aa);
   padding: 5px 8px;
   border-radius: 4px;
   font-family: var(--font-mono);
@@ -124,10 +124,10 @@
 }
 
 .hud-fleet-btn:hover {
-  background: rgba(0, 240, 255, 0.22);
-  border-color: #00f0ff;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--text-dim, #a1a1aa);
   color: #ffffff;
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
 @keyframes pulseHud {

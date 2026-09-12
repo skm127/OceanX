@@ -4,6 +4,7 @@
  * Instant spatial lookup for regions, platforms, anomalies, and coordinates.
  */
 import React, { useState, useEffect, useRef } from 'react';
+import { Search } from 'lucide-react';
 import useModalA11y from '../../hooks/useModalA11y';
 import type { ArgoProfileSummary } from '../../types';
 import './GlobalSearchModal.css';
@@ -97,7 +98,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     if (anomalyHit && topAnomaly) {
       list.push({
         id: `anomaly_${topAnomaly.platform_id}`,
-        title: `🚨 Top Fleet Anomaly (Float #${topAnomaly.platform_id}, +${topAnomaly.max_delta.toFixed(1)}°C)`,
+        title: `Top Fleet Anomaly (Float #${topAnomaly.platform_id}, +${topAnomaly.max_delta.toFixed(1)}°C)`,
         category: 'ANOMALY',
         sub: `Argo #${topAnomaly.platform_id} (${topAnomaly.latitude.toFixed(1)}°N, ${topAnomaly.longitude.toFixed(1)}°E) — live fleet analysis`,
         action: () => {
@@ -176,8 +177,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="search-input-box">
-
-          <span className="search-icon">🔍</span>
+          <Search size={16} className="search-icon" />
           <input
             ref={inputRef}
             type="text"

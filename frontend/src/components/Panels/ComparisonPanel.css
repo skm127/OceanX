@@ -4,8 +4,8 @@
   right: 12px;
   width: 420px;
   max-height: calc(100vh - 170px);
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: rgba(10, 10, 10, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -16,7 +16,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: rgba(56, 189, 248, 0.3) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
   animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -25,7 +25,7 @@
 }
 
 .comparison-panel::-webkit-scrollbar-thumb {
-  background: rgba(56, 189, 248, 0.3);
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 3px;
 }
 
@@ -46,13 +46,13 @@
   justify-content: space-between;
   align-items: flex-start;
   padding: 16px 18px 12px;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
-  background: rgba(30, 41, 59, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(20, 20, 20, 0.4);
 }
 
 .platform-tag {
   font-size: 10px;
-  color: #38bdf8;
+  color: var(--text-dim, #a1a1aa);
   font-weight: 700;
   letter-spacing: 1.6px;
   text-transform: uppercase;
@@ -73,9 +73,9 @@
 }
 
 .expand-studio-btn {
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  color: #38bdf8;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: var(--text-dim, #a1a1aa);
   padding: 3px 8px;
   border-radius: 4px;
   font-family: var(--font-mono, monospace);
@@ -88,10 +88,10 @@
 }
 
 .expand-studio-btn:hover {
-  background: rgba(56, 189, 248, 0.3);
+  background: rgba(255, 255, 255, 0.3);
   color: #ffffff;
-  border-color: #38bdf8;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+  border-color: var(--text-dim, #a1a1aa);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
 }
 
 .close-btn {
@@ -162,18 +162,18 @@
 }
 
 .anomaly-hero-banner.critical {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(15, 23, 42, 0.8) 100%);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(10, 10, 10, 0.8) 100%);
   border-color: rgba(239, 68, 68, 0.5);
   box-shadow: 0 0 16px rgba(239, 68, 68, 0.2);
 }
 
 .anomaly-hero-banner.warning {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(15, 23, 42, 0.8) 100%);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(10, 10, 10, 0.8) 100%);
   border-color: rgba(245, 158, 11, 0.45);
 }
 
 .anomaly-hero-banner.nominal {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(15, 23, 42, 0.8) 100%);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(10, 10, 10, 0.8) 100%);
   border-color: rgba(16, 185, 129, 0.35);
 }
 
@@ -224,7 +224,7 @@
 }
 
 .anomaly-hero-hypothesis strong {
-  color: #7dd3fc;
+  color: var(--text-dim, #a1a1aa);
 }
 
 /* Operational Impact Advisory Box */
@@ -311,7 +311,7 @@
 
 .metric-card {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(56, 189, 248, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   padding: 8px 10px;
   display: flex;
@@ -536,19 +536,19 @@
   margin-top: 8px;
   padding: 4px 8px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(0, 240, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   font-family: var(--font-mono);
   font-size: 9.5px;
 }
 
 .hr-depth {
-  color: #7dd3fc;
+  color: var(--text-dim, #a1a1aa);
   font-weight: 700;
 }
 
 .hr-model {
-  color: #38bdf8;
+  color: var(--text-dim, #a1a1aa);
 }
 
 .hr-obs {
@@ -583,10 +583,10 @@
 .intel-section h4 {
   font-size: 9.5px;
   letter-spacing: 1.2px;
-  color: #00f0ff;
+  color: var(--text-dim, #a1a1aa);
   font-family: var(--font-mono);
   margin-bottom: 6px;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   padding-bottom: 4px;
 }
 
@@ -618,8 +618,8 @@
 }
 
 .diagnosis-box {
-  background: rgba(0, 240, 255, 0.05);
-  border: 1px solid rgba(0, 240, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   padding: 10px 12px;
   font-size: 11px;
@@ -633,7 +633,7 @@
   gap: 8px;
   margin-top: 14px;
   padding-top: 10px;
-  border-top: 1px solid rgba(56, 189, 248, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .export-btn {
@@ -650,14 +650,14 @@
 }
 
 .export-btn.json {
-  background: rgba(0, 240, 255, 0.12);
-  border: 1px solid #00f0ff;
-  color: #00f0ff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: var(--text-dim, #a1a1aa);
 }
 
 .export-btn.json:hover {
-  background: rgba(0, 240, 255, 0.25);
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
 .export-btn.csv {

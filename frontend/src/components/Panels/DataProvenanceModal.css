@@ -14,8 +14,8 @@
   width: 100%;
   max-width: 820px;
   max-height: 88vh;
-  background: rgba(15, 23, 42, 0.96);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: rgba(10, 10, 10, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -29,15 +29,15 @@
   justify-content: space-between;
   align-items: flex-start;
   padding: 18px 24px;
-  background: rgba(30, 41, 59, 0.5);
-  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+  background: rgba(20, 20, 20, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .provenance-tag {
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
-  color: #38bdf8;
+  color: var(--text-dim, #a1a1aa);
   letter-spacing: 1.5px;
   text-transform: uppercase;
 }
@@ -72,7 +72,7 @@
 }
 
 .provenance-section {
-  background: rgba(30, 41, 59, 0.35);
+  background: rgba(20, 20, 20, 0.35);
   border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 8px;
   padding: 14px 16px;
@@ -93,7 +93,7 @@
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
-  color: #38bdf8;
+  color: var(--text-dim, #a1a1aa);
   letter-spacing: 0.8px;
 }
 
@@ -128,7 +128,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 14px 24px;
-  background: rgba(15, 23, 42, 0.9);
+  background: rgba(10, 10, 10, 0.9);
   border-top: 1px solid rgba(148, 163, 184, 0.15);
 }
 
@@ -143,15 +143,15 @@
   font-size: 11px;
   font-weight: 600;
   padding: 6px 16px;
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  color: #38bdf8;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: var(--text-dim, #a1a1aa);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .done-btn:hover {
-  background: rgba(56, 189, 248, 0.3);
+  background: rgba(255, 255, 255, 0.3);
   color: #ffffff;
 }

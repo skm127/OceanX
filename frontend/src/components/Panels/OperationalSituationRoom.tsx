@@ -11,6 +11,7 @@
  * the banner still renders (with honest "—" placeholders) if a fetch failed.
  */
 import React from 'react';
+import { AlertTriangle, Activity, Radio, Waves, ArrowRight } from 'lucide-react';
 import './OperationalSituationRoom.css';
 
 export interface SituationRoomData {
@@ -71,19 +72,32 @@ export const OperationalSituationRoom: React.FC<OperationalSituationRoomProps> =
       {collapsed ? (
         <div className="sr-ticker-row">
           <div className="sr-ticker-item">
-            <span className="sr-ticker-tag critical">🚨 CRITICAL</span>
+            <span className="sr-ticker-tag critical">
+              <AlertTriangle size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              CRITICAL
+            </span>
             <span className="sr-ticker-text">{fmtDelta} Subsurface Heatwave (Float #{data.topFloatId ?? '—'} @ {fmtDepth})</span>
-            <button className="sr-ticker-btn" onClick={onJumpToAnomaly}>INTERROGATE ➔</button>
+            <button className="sr-ticker-btn" onClick={onJumpToAnomaly}>
+              INTERROGATE <ArrowRight size={10} style={{ display: 'inline', verticalAlign: 'middle' }} />
+            </button>
           </div>
           <div className="sr-ticker-sep">|</div>
           <div className="sr-ticker-item">
-            <span className="sr-ticker-tag warning">🌀 CYCLONE</span>
+            <span className="sr-ticker-tag warning">
+              <Activity size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              CYCLONE
+            </span>
             <span className="sr-ticker-text">TCHP {fmtTchp ?? '—'} {tchpStatus} (Central Bay of Bengal)</span>
-            <button className="sr-ticker-btn" onClick={() => onJumpToBuoy('buoy_BD08')}>INSPECT ➔</button>
+            <button className="sr-ticker-btn" onClick={() => onJumpToBuoy('buoy_BD08')}>
+              INSPECT <ArrowRight size={10} style={{ display: 'inline', verticalAlign: 'middle' }} />
+            </button>
           </div>
           <div className="sr-ticker-sep">|</div>
           <div className="sr-ticker-item">
-            <span className="sr-ticker-tag live">📡 LIVE</span>
+            <span className="sr-ticker-tag live">
+              <Radio size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              LIVE
+            </span>
             <span className="sr-ticker-text">{total} Platforms Synced</span>
           </div>
         </div>
@@ -91,31 +105,31 @@ export const OperationalSituationRoom: React.FC<OperationalSituationRoomProps> =
         <div className="sr-body">
           {/* Status Metrics Strip */}
           <div className="sr-metric-tile critical">
-            <div className="sr-tile-icon">🚨</div>
+            <div className="sr-tile-icon"><AlertTriangle size={20} /></div>
             <div className="sr-tile-content">
               <span className="sr-tile-label">CRITICAL WARNING</span>
               <span className="sr-tile-value">{fmtDelta} Subsurface Heatwave</span>
               <span className="sr-tile-sub">Trapped heat at {fmtDepth} (Float #{data.topFloatId ?? '—'})</span>
             </div>
             <button className="sr-action-btn pulse" onClick={onJumpToAnomaly}>
-              INTERROGATE ➔
+              INTERROGATE <ArrowRight size={12} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
             </button>
           </div>
 
           <div className="sr-metric-tile warning">
-            <div className="sr-tile-icon">🌀</div>
+            <div className="sr-tile-icon"><Activity size={20} /></div>
             <div className="sr-tile-content">
               <span className="sr-tile-label">CYCLONE RISK (TCHP)</span>
               <span className="sr-tile-value">{fmtTchp ?? '—'} {tchpStatus}</span>
               <span className="sr-tile-sub">Central Bay of Bengal (Buoy BD08)</span>
             </div>
             <button className="sr-action-btn" onClick={() => onJumpToBuoy('buoy_BD08')}>
-              INSPECT ➔
+              INSPECT <ArrowRight size={12} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} />
             </button>
           </div>
 
           <div className="sr-metric-tile nominal">
-            <div className="sr-tile-icon">🌊</div>
+            <div className="sr-tile-icon"><Waves size={20} /></div>
             <div className="sr-tile-content">
               <span className="sr-tile-label">COASTAL SURVEILLANCE</span>
               <span className="sr-tile-value">{total} Platforms Synchronized</span>

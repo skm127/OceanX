@@ -64,7 +64,7 @@
 .toast-success .toast-icon { color: #4ade80; }
 .toast-warning .toast-icon { color: #fbbf24; }
 .toast-error .toast-icon { color: #f87171; }
-.toast-info .toast-icon { color: #38bdf8; }
+.toast-info .toast-icon { color: var(--text-dim, #a1a1aa); }
 
 .toast-content {
   flex: 1;

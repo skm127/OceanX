@@ -3,6 +3,7 @@
  * Blueprint §7 & §15: Unified inventory of Argo Profilers, OMNI/RAMA Moored Buoys, and Ocean Gliders.
  */
 import { useState, useMemo } from 'react';
+import { Radio } from 'lucide-react';
 import type { ArgoProfileSummary } from '../../types';
 import './FleetSidebar.css';
 
@@ -93,7 +94,7 @@ export default function FleetSidebar({
     <div className={`fleet-sidebar ${railOpen ? 'with-layer-rail' : ''}`}>
       <div className="fleet-header">
         <div className="fleet-header-title">
-          <span>📡</span>
+          <Radio size={16} style={{ color: '#38bdf8' }} />
           <h4>INCOIS Sensor Network</h4>
           <span className="fleet-header-badge">{totalPlatforms} Platforms</span>
         </div>

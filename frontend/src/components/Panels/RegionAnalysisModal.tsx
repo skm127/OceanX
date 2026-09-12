@@ -4,6 +4,7 @@
  * Computes surface area, statistical distributions, observations count, and model errors for any bounding box.
  */
 import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { Maximize2, AlertTriangle } from 'lucide-react';
 import useModalA11y from '../../hooks/useModalA11y';
 import { calculateRegionStats } from '../../services/api';
 import { interpolateColor, getColormap } from '../../utils/colormap';
@@ -157,7 +158,10 @@ export const RegionAnalysisModal: React.FC<RegionAnalysisModalProps> = ({
 
         <div className="region-header">
           <div className="region-badge-row">
-            <span className="region-tag">⬚ SPATIAL COMPUTING & INTEGRATION</span>
+            <span className="region-tag">
+              <Maximize2 size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              SPATIAL COMPUTING & INTEGRATION
+            </span>
             <span className="region-depth-tag">DEPTH: {depth}M</span>
           </div>
           <div className="region-title-row">
@@ -281,7 +285,7 @@ export const RegionAnalysisModal: React.FC<RegionAnalysisModalProps> = ({
 
           {error && (
             <div className="region-error">
-              <span>⚠ {error}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={14} /> {error}</span>
             </div>
           )}
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Bot, Droplets, Flame, Waves, GraduationCap, Lightbulb } from 'lucide-react';
 import './LearnStoryJourney.css';
 
 interface LearnStoryJourneyProps {
@@ -9,7 +10,7 @@ interface LearnStoryJourneyProps {
 const JOURNEY_STEPS = [
   {
     id: 1,
-    icon: '🤖',
+    Icon: Bot,
     title: 'The Robotic Argo Network',
     subtitle: 'How autonomous floats profile the deep ocean every 10 days',
     description: 'India deploys Argo profiling floats across the Indian Ocean through INCOIS. Each float dives to 2000m, measuring temperature and salinity as it ascends. This creates a 4D picture of the ocean\'s interior that no satellite can see.',
@@ -18,7 +19,7 @@ const JOURNEY_STEPS = [
   },
   {
     id: 2,
-    icon: '💧',
+    Icon: Droplets,
     title: 'Bay of Bengal Freshwater Lens',
     subtitle: 'Why salinity controls monsoon intensity',
     description: 'The Bay of Bengal receives massive freshwater input from the Ganges, Brahmaputra, and Irrawaddy rivers. This creates a thin, low-salinity "barrier layer" on the surface that traps heat underneath — intensifying cyclones that pass over it.',
@@ -27,7 +28,7 @@ const JOURNEY_STEPS = [
   },
   {
     id: 3,
-    icon: '🔥',
+    Icon: Flame,
     title: 'Hidden Subsurface Heatwaves',
     subtitle: 'When the ocean hides dangerous heat below the surface',
     description: 'Marine heatwaves can be invisible from space. OCEAN-X compares model predictions with Argo observations to detect when reality diverges from the forecast — revealing trapped subsurface heat that satellites miss entirely.',
@@ -36,7 +37,7 @@ const JOURNEY_STEPS = [
   },
   {
     id: 4,
-    icon: '🌊',
+    Icon: Waves,
     title: 'Monsoon Ocean Currents',
     subtitle: 'The ocean highways that drive Indian weather',
     description: 'The Indian Ocean has the world\'s only seasonally reversing current system. During the southwest monsoon, the Somali Current and East India Coastal Current transport warm water that fuels rainfall across the subcontinent.',
@@ -63,32 +64,41 @@ export const LearnStoryJourney: React.FC<LearnStoryJourneyProps> = ({
       <div className="learn-journey-card">
         <div className="lj-header">
           <div className="lj-title-group">
-            <span className="lj-badge">🎓 LEARN MODE</span>
+            <span className="lj-badge">
+              <GraduationCap size={14} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              LEARN MODE
+            </span>
             <span className="lj-progress">Step {activeStep + 1} of {JOURNEY_STEPS.length}</span>
           </div>
           <button className="lj-close-btn" onClick={onClose} title="Exit Learn Mode">✕</button>
         </div>
 
         <div className="lj-step-indicators">
-          {JOURNEY_STEPS.map((s, i) => (
-            <button
-              key={s.id}
-              className={`lj-step-dot ${i === activeStep ? 'active' : ''} ${i < activeStep ? 'completed' : ''}`}
-              onClick={() => goToStep(i)}
-              title={s.title}
-            >
-              {s.icon}
-            </button>
-          ))}
+          {JOURNEY_STEPS.map((s, i) => {
+            const StepIcon = s.Icon;
+            return (
+              <button
+                key={s.id}
+                className={`lj-step-dot ${i === activeStep ? 'active' : ''} ${i < activeStep ? 'completed' : ''}`}
+                onClick={() => goToStep(i)}
+                title={s.title}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <StepIcon size={14} />
+              </button>
+            );
+          })}
         </div>
 
         <div className="lj-content">
-          <div className="lj-step-icon">{step.icon}</div>
+          <div className="lj-step-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <step.Icon size={28} />
+          </div>
           <h3 className="lj-step-title">{step.title}</h3>
           <p className="lj-step-subtitle">{step.subtitle}</p>
           <p className="lj-step-description">{step.description}</p>
           <div className="lj-highlight">
-            <span className="lj-highlight-icon">💡</span>
+            <span className="lj-highlight-icon"><Lightbulb size={14} /></span>
             <span>{step.highlight}</span>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Activity, Split } from 'lucide-react';
 import type { HeatPotentialPoint } from '../../types';
 import './TCHPInspectorCard.css';
 
@@ -25,7 +26,7 @@ export const TCHPInspectorCard: React.FC<TCHPInspectorCardProps> = ({
     <div className={`tchp-inspector-card ${isHighRisk ? 'pulse-border' : ''}`}>
       <div className="tchp-card-header">
         <div className="tchp-header-left">
-          <span className="tchp-cyclone-icon">🌀</span>
+          <Activity size={18} className="tchp-cyclone-icon" />
           <div>
             <div className="tchp-card-title">CYCLONE HEAT POTENTIAL (TCHP)</div>
             <div className="tchp-card-sub">
@@ -94,7 +95,7 @@ export const TCHPInspectorCard: React.FC<TCHPInspectorCardProps> = ({
       {onOpenTransect && (
         <div className="tchp-footer-actions">
           <button className="tchp-action-btn" onClick={onOpenTransect}>
-            <span>⟂</span>
+            <Split size={14} />
             <span>Vertical Cross-Section Through Warm Pool</span>
           </button>
         </div>

@@ -73,6 +73,7 @@ import OceanGuideAgent from './components/OceanGuide/OceanGuideAgent';
 import { useLiveFeed } from './hooks/useLiveFeed';
 import { LiveConnectionIndicator } from './components/Controls/LiveConnectionIndicator';
 import { useUIStore } from './store/uiStore';
+import { Search, AlertTriangle, Bot, Activity, ChevronDown, Crosshair, Map, Brain, Database, FileText, Camera, Keyboard, Anchor } from 'lucide-react';
 
 function App() {
   const {
@@ -513,10 +514,8 @@ function App() {
 
       {/* Scientific Ocean Intelligence Header */}
       <header className="top-bar">
-
         <div className="top-bar-left">
           <div className="logo">
-            <div className="logo-hex">⬡</div>
             <div className="logo-text">
               <h1>OCEAN-X</h1>
               <span className="logo-subtitle">SCIENTIFIC 3D OCEAN WORKSTATION</span>
@@ -527,7 +526,7 @@ function App() {
 
           {/* Global Search Bar (⌘K / Ctrl+K) */}
           <div className="global-search-bar" onClick={() => setSearchModalOpen(true)}>
-            <span className="search-bar-icon">⌕</span>
+            <Search size={14} />
             <span className="search-bar-placeholder">Search domain, platform, variable...</span>
             <span className="search-bar-kbd">⌘K</span>
           </div>
@@ -553,13 +552,15 @@ function App() {
             const anomCount = anomalySummary
               ? anomalySummary.critical_count + anomalySummary.warning_count
               : 0;
+            if (anomCount === 0) return null;
             return (
               <button
                 className="c2-badge anomaly-alert-badge anomaly-clickable"
                 onClick={() => handleSelectSector('anomaly_target')}
                 title={`Inspect Subsurface Thermal Anomalies (${anomCount} detected, Key: 4)`}
               >
-                ⚠ {anomCount} {anomCount === 1 ? 'ANOMALY' : 'ANOMALIES'}
+                <AlertTriangle size={14} />
+                {anomCount} {anomCount === 1 ? 'ANOMALY' : 'ANOMALIES'}
               </button>
             );
           })()}
@@ -568,11 +569,10 @@ function App() {
           <button
             className={`c2-badge ai-guide-top-btn ${guideOpen ? 'active' : ''}`}
             onClick={() => setGuideOpen((prev) => !prev)}
-            title="Open Layman AI Ocean Guide (Key: G) — Plain-English translation of everything on screen"
+            title="Open Layman AI Ocean Guide (Key: G) - Plain-English translation of everything on screen"
           >
-            <span className="btn-robot-icon">🤖</span>
+            <Bot size={14} />
             <span>AI GUIDE</span>
-            <span className="guide-hint-badge">HELP</span>
           </button>
 
           {/* Real-Time Live Ocean Data & Predictions */}
@@ -580,9 +580,9 @@ function App() {
             className={`c2-badge ai-guide-top-btn ${realtimeModalOpen ? 'active' : ''}`}
             onClick={() => setRealtimeModalOpen((prev) => !prev)}
             title="Live Ocean Telemetry & 72-Hour Predictions (Key: D)"
-            style={{ background: realtimeModalOpen ? 'rgba(0,255,180,0.15)' : undefined }}
+            style={{ background: realtimeModalOpen ? 'rgba(255,255,255,0.1)' : undefined }}
           >
-            <span className="btn-robot-icon">🛰️</span>
+            <Activity size={14} />
             <span>LIVE DATA</span>
           </button>
 
@@ -602,44 +602,32 @@ function App() {
               onClick={() => setToolsMenuOpen(!toolsMenuOpen)}
               title="Spatial & ML Analysis Tools"
             >
-              ANALYSIS ▾
+              ANALYSIS <ChevronDown size={14} />
             </button>
             {toolsMenuOpen && (
-              <div className="tools-dropdown-menu" onClick={() => setToolsMenuOpen(false)}>
-                <button className="tools-menu-item" onClick={() => setTransectModalOpen(true)}>
-                  <span className="item-icon">⟂</span>
+              <div className="tools-dropdown-menu">
+                <button className="tools-menu-item" onClick={() => { setTransectModalOpen(true); setToolsMenuOpen(false); }}>
+                  <Crosshair size={14} />
+                  <span className="item-text">Ocean Transect Subsurface</span>
+                </button>
+                <button className="tools-menu-item" onClick={() => { setRegionModalOpen(true); setToolsMenuOpen(false); }}>
+                  <Map size={14} />
+                  <span className="item-text">Draw Region Analytics</span>
+                </button>
+                <button className="tools-menu-item" onClick={() => { setAiModalOpen(true); setToolsMenuOpen(false); }}>
+                  <Brain size={14} />
+                  <span className="item-text">Grounded ML Analyst</span>
+                </button>
+                <button className="tools-menu-item" onClick={() => { setCoLocationOpen(true); setToolsMenuOpen(false); }}>
+                  <Database size={14} />
                   <div className="item-text">
-                    <span className="item-title">Vertical Transect</span>
-                    <span className="item-desc">2D depth-distance cross-section (T)</span>
+                    <span>In-Situ Co-Location Matcher</span>
+                    <span className="item-desc">Model-observation spatial matching</span>
                   </div>
                 </button>
-                <button className="tools-menu-item" onClick={() => setRegionModalOpen(true)}>
-                  <span className="item-icon">⬚</span>
-                  <div className="item-text">
-                    <span className="item-title">Basin Analytics</span>
-                    <span className="item-desc">Bounding box stats & histogram (R)</span>
-                  </div>
-                </button>
-                <button className="tools-menu-item" onClick={() => setAiModalOpen(true)}>
-                  <span className="item-icon">✦</span>
-                  <div className="item-text">
-                    <span className="item-title">Grounded AI Analyst</span>
-                    <span className="item-desc">Residual-backed diagnosis (A)</span>
-                  </div>
-                </button>
-                <button className="tools-menu-item" onClick={() => setCoLocationOpen(true)}>
-                  <span className="item-icon">🎯</span>
-                  <div className="item-text">
-                    <span className="item-title">Co-Location Engine</span>
-                    <span className="item-desc">Model–observation spatial matching</span>
-                  </div>
-                </button>
-                <button className="tools-menu-item" onClick={() => setProductMode('sounding')}>
-                  <span className="item-icon">📊</span>
-                  <div className="item-text">
-                    <span className="item-title">Sounding Studio</span>
-                    <span className="item-desc">Dedicated observation workstation</span>
-                  </div>
+                <button className="tools-menu-item" onClick={() => { setBriefingOpen(true); setToolsMenuOpen(false); }}>
+                  <FileText size={14} />
+                  <span className="item-text">Mission Briefing & Scope</span>
                 </button>
               </div>
             )}
@@ -647,16 +635,16 @@ function App() {
 
           {/* In-Situ Multi-Sensor Platform Network Count */}
           <button
-            className="c2-badge floats fleet-btn"
+            className="c2-badge tool-btn"
             onClick={() => setFleetOpen(!fleetOpen)}
             title="Inspect Active In-Situ Sensor Network (Key: F)"
           >
-            📡 {sensorNetworkCount} SENSORS
+            <Anchor size={14} /> {sensorNetworkCount} SENSORS
           </button>
 
           {/* Scientific Briefing */}
           <button
-            className="c2-badge briefing-btn"
+            className="c2-badge tool-btn"
             onClick={() => setBriefingOpen(true)}
             title="SIH26067 Scientific Brief & Evaluation Guide (Key: B)"
           >
@@ -665,20 +653,20 @@ function App() {
 
           {/* Snapshot Export */}
           <button
-            className="c2-badge snapshot-btn"
+            className="c2-badge tool-btn"
             onClick={handleCaptureSnapshot}
             title="Export High-Resolution Canvas"
           >
-            EXPORT
+            <Camera size={14} /> EXPORT
           </button>
 
           {/* Keyboard Shortcuts Matrix */}
           <button
-            className="c2-badge hotkeys-btn"
+            className="c2-badge tool-btn"
             onClick={() => setShowHotkeys(!showHotkeys)}
             title="Keyboard Shortcuts Guide (Key: ?)"
           >
-            ?
+            <Keyboard size={14} />
           </button>
         </div>
       </header>

@@ -4,14 +4,14 @@
   top: 60px;
   right: 14px;
   width: 320px;
-  background: rgba(3, 7, 18, 0.94);
-  border: 1px solid rgba(0, 240, 255, 0.4);
+  background: rgba(10, 10, 10, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   z-index: 36;
   backdrop-filter: blur(14px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 240, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), 0 0 16px rgba(255, 255, 255, 0.1);
   font-family: var(--font-mono);
   overflow: hidden;
   animation: probeSlide 0.2s ease-out;
@@ -33,8 +33,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  background: rgba(0, 240, 255, 0.08);
-  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .probe-header-title {
@@ -46,7 +46,7 @@
 .probe-tag {
   font-size: 8.5px;
   letter-spacing: 1.5px;
-  color: #00f0ff;
+  color: var(--text-dim, #a1a1aa);
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -61,7 +61,7 @@
 .probe-close-btn {
   background: transparent;
   border: none;
-  color: #7dd3fc;
+  color: var(--text-dim, #a1a1aa);
   font-size: 15px;
   cursor: pointer;
   padding: 2px 6px;
@@ -86,14 +86,14 @@
   justify-content: space-between;
   align-items: center;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 4px;
   padding: 5px 8px;
   font-size: 10px;
 }
 
 .probe-region {
-  color: #38bdf8;
+  color: var(--text-dim, #a1a1aa);
   font-weight: 700;
 }
 
@@ -109,7 +109,7 @@
 
 .probe-stat-item {
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 4px;
   padding: 6px 8px;
   display: flex;
@@ -127,12 +127,12 @@
 .probe-stat-val {
   font-size: 13px;
   font-weight: 700;
-  color: #00f0ff;
+  color: var(--text-dim, #a1a1aa);
 }
 
 .probe-chart-box {
   background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   padding: 8px;
   display: flex;
@@ -142,7 +142,7 @@
 
 .probe-chart-title {
   font-size: 9px;
-  color: #7dd3fc;
+  color: var(--text-dim, #a1a1aa);
   letter-spacing: 0.8px;
   text-transform: uppercase;
   font-weight: 700;

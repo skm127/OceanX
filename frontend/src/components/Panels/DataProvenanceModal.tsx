@@ -4,6 +4,7 @@
  * Answers INCOIS and MoES scientific audit criteria with complete transparency.
  */
 import React, { useRef } from 'react';
+import { Globe2, MapPin, Cpu } from 'lucide-react';
 import useModalA11y from '../../hooks/useModalA11y';
 import './DataProvenanceModal.css';
 
@@ -43,7 +44,7 @@ export const DataProvenanceModal: React.FC<DataProvenanceModalProps> = ({ isOpen
           {/* Numerical Ocean Model */}
           <div className="provenance-section">
             <div className="section-title-row">
-              <span className="section-icon">🌐</span>
+              <span className="section-icon"><Globe2 size={16} /></span>
               <h3>1. NUMERICAL OCEAN FORECAST MODEL</h3>
             </div>
             <div className="provenance-grid">
@@ -77,7 +78,7 @@ export const DataProvenanceModal: React.FC<DataProvenanceModalProps> = ({ isOpen
           {/* In-Situ Observation Network */}
           <div className="provenance-section">
             <div className="section-title-row">
-              <span className="section-icon">📍</span>
+              <span className="section-icon"><MapPin size={16} /></span>
               <h3>2. IN-SITU OBSERVATIONAL NETWORK</h3>
             </div>
             <div className="provenance-grid">
@@ -111,7 +112,7 @@ export const DataProvenanceModal: React.FC<DataProvenanceModalProps> = ({ isOpen
           {/* Mathematical Alignment & ML Anomaly Detection */}
           <div className="provenance-section">
             <div className="section-title-row">
-              <span className="section-icon">🔬</span>
+              <span className="section-icon"><Cpu size={16} /></span>
               <h3>3. MATHEMATICAL INTERPOLATION & ML ENGINE</h3>
             </div>
             <div className="provenance-grid">

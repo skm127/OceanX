@@ -39,7 +39,7 @@
 
 .hover-coord-text {
   font-size: 11px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   color: #00E5FF;
   font-weight: 600;
 }
@@ -100,7 +100,7 @@
 .hover-val-num {
   font-size: 19px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   color: #FFFFFF;
 }
 

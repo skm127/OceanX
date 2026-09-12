@@ -4,6 +4,22 @@
  * Manages active scientific feeds across Model, Observations, Satellite, and Environment.
  */
 import React, { useState } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Layers,
+  Thermometer,
+  Droplets,
+  Waves,
+  Radio,
+  Navigation,
+  Anchor,
+  Satellite,
+  Activity,
+  Wind,
+  Flame,
+} from 'lucide-react';
 import type { OceanVariable } from '../../types';
 import './LayerRail.css';
 
@@ -88,7 +104,7 @@ export const LayerRail: React.FC<LayerRailProps> = ({
         onClick={onToggleOpen}
         title={isOpen ? 'Collapse Layer Rail (Key: L)' : 'Expand Layer Rail (Key: L)'}
       >
-        <span className="rail-toggle-icon">{isOpen ? '◀' : '▶'}</span>
+        <span className="rail-toggle-icon">{isOpen ? <ChevronLeft size={12} /> : <ChevronRight size={12} />}</span>
         <span className="rail-toggle-text">LAYERS</span>
       </button>
 
@@ -96,7 +112,7 @@ export const LayerRail: React.FC<LayerRailProps> = ({
         <div className="layer-rail-content">
           <div className="layer-rail-header">
             <div className="layer-rail-title">
-              <span className="rail-icon">⬡</span>
+              <Layers size={14} className="rail-icon" />
               <span>SCIENTIFIC FEEDS</span>
             </div>
             <span className="rail-active-count">
@@ -111,14 +127,14 @@ export const LayerRail: React.FC<LayerRailProps> = ({
               onClick={onOpenRegionAnalysis}
               title="Draw / Analyze Region (Area, Mean Temp, Residual)"
             >
-              ⬚ REGION
+              REGION
             </button>
             <button
               className="rail-tool-btn"
               onClick={onOpenTransect}
-              title="Generate Subsurface Depth Transect A ➔ B"
+              title="Generate Subsurface Depth Transect A -> B"
             >
-              ⟂ TRANSECT
+              TRANSECT
             </button>
             {onCycloneSeasonView && (
               <button
@@ -127,7 +143,8 @@ export const LayerRail: React.FC<LayerRailProps> = ({
                 title="Bay of Bengal Cyclone Season View (Pan to 12°N, 88°E, Depth 0m, Enable TCHP)"
                 style={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.4)' }}
               >
-                🌀 CYCLONE
+                <Wind size={12} style={{ display: 'inline', verticalAlign: '-1px', marginRight: '4px' }} />
+                CYCLONE
               </button>
             )}
           </div>
@@ -186,7 +203,7 @@ export const LayerRail: React.FC<LayerRailProps> = ({
               onClick={() => setModelExpanded(!modelExpanded)}
             >
               <span className="category-title">NUMERICAL MODEL (NEMO 4D)</span>
-              <span className="category-arrow">{modelExpanded ? '▾' : '▸'}</span>
+              <span className="category-arrow">{modelExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
             </div>
             {modelExpanded && (
               <div className="category-items">
@@ -199,7 +216,10 @@ export const LayerRail: React.FC<LayerRailProps> = ({
                     checked={variable === 'thetao'}
                     onChange={() => onVariableChange('thetao')}
                   />
-                  <span className="feed-label">Temperature (θ)</span>
+                  <span className="feed-label">
+                    <Thermometer size={13} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px' }} />
+                    Temperature (θ)
+                  </span>
                   <span className="feed-badge">°C</span>
                 </label>
 
@@ -212,7 +232,10 @@ export const LayerRail: React.FC<LayerRailProps> = ({
                     checked={variable === 'so'}
                     onChange={() => onVariableChange('so')}
                   />
-                  <span className="feed-label">Salinity (S)</span>
+                  <span className="feed-label">
+                    <Droplets size={13} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px' }} />
+                    Salinity (S)
+                  </span>
                   <span className="feed-badge">PSU</span>
                 </label>
 
@@ -224,7 +247,10 @@ export const LayerRail: React.FC<LayerRailProps> = ({
                     checked={showCurrents}
                     onChange={onToggleCurrents}
                   />
-                  <span className="feed-label">3D Current Vectors</span>
+                  <span className="feed-label">
+                    <Waves size={13} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px' }} />
+                    3D Current Vectors
+                  </span>
                   <span className="feed-badge cyan">VECTORS</span>
                 </label>
               </div>
@@ -238,7 +264,7 @@ export const LayerRail: React.FC<LayerRailProps> = ({
               onClick={() => setObsExpanded(!obsExpanded)}
             >
               <span className="category-title">IN-SITU OBSERVATIONS</span>
-              <span className="category-arrow">{obsExpanded ? '▾' : '▸'}</span>
+              <span className="category-arrow">{obsExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
             </div>
             {obsExpanded && (
               <div className="category-items">
@@ -250,19 +276,28 @@ export const LayerRail: React.FC<LayerRailProps> = ({
                     checked={showArgo}
                     onChange={onToggleArgo}
                   />
-                  <span className="feed-label">Argo Profiling Fleet</span>
+                  <span className="feed-label">
+                    <Radio size={13} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px' }} />
+                    Argo Profiling Fleet
+                  </span>
                   <span className="feed-badge green">LIVE ({argoCount ?? 0})</span>
                 </label>
 
                 <label className={`feed-item ${showGliders ?? showArgo ? 'active' : ''}`} title="Autonomous Glider feed">
                   <input type="checkbox" checked={showGliders ?? showArgo} onChange={onToggleGliders ?? onToggleArgo} />
-                  <span className="feed-label">Ocean Gliders</span>
+                  <span className="feed-label">
+                    <Navigation size={13} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px' }} />
+                    Ocean Gliders
+                  </span>
                   <span className="feed-badge green">LIVE ({gliderCount ?? 0})</span>
                 </label>
 
                 <label className={`feed-item ${showBuoys ?? showArgo ? 'active' : ''}`} title="Moored buoy arrays">
                   <input type="checkbox" checked={showBuoys ?? showArgo} onChange={onToggleBuoys ?? onToggleArgo} />
-                  <span className="feed-label">Moored Buoys (OMNI)</span>
+                  <span className="feed-label">
+                    <Anchor size={13} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px' }} />
+                    Moored Buoys (OMNI)
+                  </span>
                   <span className="feed-badge green">LIVE ({buoyCount ?? 0})</span>
                 </label>
               </div>
@@ -276,7 +311,7 @@ export const LayerRail: React.FC<LayerRailProps> = ({
               onClick={() => setSatExpanded(!satExpanded)}
             >
               <span className="category-title">SATELLITE TELEMETRY</span>
-              <span className="category-arrow">{satExpanded ? '▾' : '▸'}</span>
+              <span className="category-arrow">{satExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
             </div>
             {satExpanded && (
               <div className="category-items">
@@ -288,13 +323,19 @@ export const LayerRail: React.FC<LayerRailProps> = ({
                     checked={showSST}
                     onChange={onToggleSST}
                   />
-                  <span className="feed-label">MODIS Infrared SST</span>
+                  <span className="feed-label">
+                    <Satellite size={13} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px' }} />
+                    MODIS Infrared SST
+                  </span>
                   <span className="feed-badge">NASA</span>
                 </label>
 
                 <label className="feed-item disabled" title="Sea Level Anomaly standby">
                   <input type="checkbox" disabled />
-                  <span className="feed-label muted">Sea Level Anomaly (SLA)</span>
+                  <span className="feed-label muted">
+                    <Activity size={13} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px' }} />
+                    Sea Level Anomaly (SLA)
+                  </span>
                   <span className="feed-badge faint">ALTIMETRY</span>
                 </label>
               </div>
@@ -308,7 +349,7 @@ export const LayerRail: React.FC<LayerRailProps> = ({
               onClick={() => setEnvExpanded(!envExpanded)}
             >
               <span className="category-title">HAZARDS & ENVIRONMENT</span>
-              <span className="category-arrow">{envExpanded ? '▾' : '▸'}</span>
+              <span className="category-arrow">{envExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
             </div>
             {envExpanded && (
               <div className="category-items">
@@ -320,7 +361,10 @@ export const LayerRail: React.FC<LayerRailProps> = ({
                     checked={showCyclones}
                     onChange={onToggleCyclones}
                   />
-                  <span className="feed-label">Cyclone Track Hazards</span>
+                  <span className="feed-label">
+                    <Wind size={13} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px' }} />
+                    Cyclone Track Hazards
+                  </span>
                   <span className="feed-badge red">IMD/JTWC</span>
                 </label>
 
@@ -332,7 +376,10 @@ export const LayerRail: React.FC<LayerRailProps> = ({
                     checked={showTCHP}
                     onChange={onToggleTCHP}
                   />
-                  <span className="feed-label">Cyclone Heat Potential (TCHP)</span>
+                  <span className="feed-label">
+                    <Flame size={13} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px' }} />
+                    Cyclone Heat Potential (TCHP)
+                  </span>
                   <span className="feed-badge orange">TCHP &gt; 50</span>
                 </label>
               </div>

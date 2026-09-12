@@ -81,7 +81,7 @@
   padding: 1px 5px;
   font-size: 10px;
   font-family: ui-monospace, monospace;
-  color: #38bdf8;
+  color: var(--text-dim, #a1a1aa);
 }
 
 .onboarding-hint-actions {

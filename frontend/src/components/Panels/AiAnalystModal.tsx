@@ -4,6 +4,7 @@
  * Grounded in real mathematical residuals against NEMO model and in-situ Argo observations.
  */
 import React, { useState, useRef } from 'react';
+import { AlertCircle, AlertTriangle, Info, Navigation, Sparkles } from 'lucide-react';
 import useModalA11y from '../../hooks/useModalA11y';
 import { showToast } from '../../utils/toast';
 import { queryAiAnalyst } from '../../services/api';
@@ -84,7 +85,7 @@ export const AiAnalystModal: React.FC<AiAnalystModalProps> = ({
 
         <div className="ai-header">
           <div className="ai-badge-row">
-            <span className="ai-badge-tag">✦ GROUNDED OCEANOGRAPHIC INTELLIGENCE</span>
+            <span className="ai-badge-tag"><Sparkles size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />GROUNDED OCEANOGRAPHIC INTELLIGENCE</span>
             <span className="ai-hallucination-badge">ZERO HALLUCINATION // EVIDENCE-BACKED</span>
           </div>
           <div className="ai-title-row">
@@ -143,7 +144,7 @@ export const AiAnalystModal: React.FC<AiAnalystModalProps> = ({
 
           {error && (
             <div className="ai-error">
-              <span>⚠ {error}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={14} /> {error}</span>
             </div>
           )}
 
@@ -153,7 +154,17 @@ export const AiAnalystModal: React.FC<AiAnalystModalProps> = ({
               <div className="ai-status-banner">
                 <div className="status-left">
                   <span className={`status-pill ${analysis.severity.toLowerCase()}`}>
-                    {analysis.severity === 'CRITICAL' ? '🚨 CRITICAL ANOMALY' : 'ℹ STATUS NOMINAL'}
+                    {analysis.severity === 'CRITICAL' ? (
+                      <>
+                        <AlertCircle size={14} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                        CRITICAL ANOMALY
+                      </>
+                    ) : (
+                      <>
+                        <Info size={14} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                        STATUS NOMINAL
+                      </>
+                    )}
                   </span>
                   <h3 className="status-title">{analysis.title}</h3>
                 </div>
@@ -205,7 +216,8 @@ export const AiAnalystModal: React.FC<AiAnalystModalProps> = ({
               <div className="ai-action-row">
                 {onTargetAnomaly && (
                   <button className="ai-action-btn primary" onClick={onTargetAnomaly}>
-                    🎯 FLY CAMERA TO ANOMALY TARGET
+                    <Navigation size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                    FLY CAMERA TO ANOMALY TARGET
                   </button>
                 )}
                 <button className="ai-action-btn secondary" onClick={onClose}>
@@ -217,7 +229,7 @@ export const AiAnalystModal: React.FC<AiAnalystModalProps> = ({
 
           {!loading && !analysis && !error && (
             <div className="ai-empty-state">
-              <span className="empty-icon">✦</span>
+              <span className="empty-icon"><Sparkles size={24} /></span>
               <p>Select a scientific prompt above or type a custom inquiry to run grounded inference.</p>
             </div>
           )}

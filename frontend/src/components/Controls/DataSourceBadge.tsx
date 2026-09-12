@@ -6,6 +6,7 @@
  * Eliminates silent fabrication and guarantees scientific integrity.
  */
 import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import {
   getDataSourceMode,
   setForceDemoMode,
@@ -85,7 +86,9 @@ export const DataSourceBadge: React.FC = () => {
         <div className="data-source-popover" onClick={(e) => e.stopPropagation()}>
           <div className="popover-header">
             <span>DATA PIPELINE INTEGRITY</span>
-            <button className="popover-close" onClick={() => setMenuOpen(false)}>✕</button>
+            <button className="popover-close" onClick={() => setMenuOpen(false)} aria-label="Close">
+              <X size={12} />
+            </button>
           </div>
           <div className="popover-status">
             <div className="status-row">

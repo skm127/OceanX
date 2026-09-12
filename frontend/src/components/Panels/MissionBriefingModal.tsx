@@ -3,6 +3,7 @@
  * Makes the entire platform immediately understandable to anyone (judges, evaluators, oceanographers).
  */
 import { useRef } from 'react';
+import { Globe2, Radio, Cpu, Navigation, Compass, AlertTriangle, CheckCircle2, Shield } from 'lucide-react';
 import useModalA11y from '../../hooks/useModalA11y';
 import './MissionBriefingModal.css';
 
@@ -56,7 +57,7 @@ export default function MissionBriefingModal({
         <div className="briefing-body">
           {/* Executive Summary */}
           <div className="briefing-card highlight-card">
-            <h3>🌊 The Mission: Model vs Reality Ocean Intelligence</h3>
+            <h3><Compass size={18} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle' }} />The Mission: Model vs Reality Ocean Intelligence</h3>
             <p>
               Under <strong>Smart India Hackathon 2026 (Problem PS26067 — Ministry of Earth Sciences / INCOIS)</strong>, 
               numerical ocean models (like <strong>NEMO Reanalysis</strong>) forecast water temperatures, salinity, and currents across India's maritime domain. 
@@ -69,21 +70,21 @@ export default function MissionBriefingModal({
           {/* 3 Core Pillars */}
           <div className="briefing-grid-3">
             <div className="briefing-pillar">
-              <div className="pillar-icon">🌐</div>
+              <div className="pillar-icon"><Globe2 size={20} /></div>
               <h4>1. Numerical Model (NEMO)</h4>
               <p>
                 A 7-day 4D reanalysis (0-500m depth, 0.25° grid) across the Arabian Sea, Bay of Bengal, and Equatorial Indian Ocean (0-28°N, 60-100°E).
               </p>
             </div>
             <div className="briefing-pillar">
-              <div className="pillar-icon">📡</div>
+              <div className="pillar-icon"><Radio size={20} /></div>
               <h4>2. In-Situ Argo Fleet</h4>
               <p>
                 Autonomous robotic buoys that drift with deep currents, diving down to 2,000m and surfacing every 10 days to transmit empirical ground-truth soundings.
               </p>
             </div>
             <div className="briefing-pillar">
-              <div className="pillar-icon">🧠</div>
+              <div className="pillar-icon"><Cpu size={20} /></div>
               <h4>3. AI Anomaly Detection</h4>
               <p>
                 An <strong>Isolation Forest</strong> algorithm analyzes multi-depth vertical divergence, thermocline gradient drift, and heat anomalies to identify operational risks.
@@ -93,7 +94,7 @@ export default function MissionBriefingModal({
 
           {/* Anomaly Science Deep Dive */}
           <div className="briefing-card">
-            <h3>⚡ Why Anomaly Detection Matters: Subsurface Marine Heatwaves</h3>
+            <h3><AlertTriangle size={18} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle' }} />Why Anomaly Detection Matters: Subsurface Marine Heatwaves</h3>
             <p>
               In tropical waters like the Bay of Bengal, freshwater river runoff creates a thin surface "barrier layer". 
               Sunlight penetrates below this layer, trapping intense heat (+3.2°C hotter than models expect) between <strong>80m and 220m depth</strong>. 
@@ -104,12 +105,12 @@ export default function MissionBriefingModal({
 
           {/* 60-Second Guided Demo */}
           <div className="briefing-card demo-card">
-            <h3>🎯 60-Second Evaluation Walkthrough</h3>
+            <h3><CheckCircle2 size={18} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle' }} />60-Second Evaluation Walkthrough</h3>
             <div className="demo-steps">
               <div className="demo-step">
                 <span className="step-num">1</span>
                 <div>
-                  <strong>Explore the 3D Ocean:</strong> Use <code>[ 🇮🇳 All India ]</code>, <code>[ 🌊 Arabian Sea ]</code>, or <code>[ 🌊 Bay of Bengal ]</code> to surveil regional basins.
+                  <strong>Explore the 3D Ocean:</strong> Use <code>[ All India ]</code>, <code>[ Arabian Sea ]</code>, or <code>[ Bay of Bengal ]</code> to surveil regional basins.
                 </div>
               </div>
               <div className="demo-step">
@@ -121,7 +122,7 @@ export default function MissionBriefingModal({
               <div className="demo-step">
                 <span className="step-num">3</span>
                 <div>
-                  <strong>Spot the Anomaly:</strong> Click the pulsing red <code>[ 🚨 {anomalyCount ?? '?'} ANOMALIES ]</code> badge or press <code>4</code> to fly directly to Float <code>#{anomalyFloatId ?? '—'}</code>.
+                  <strong>Spot the Anomaly:</strong> Click the pulsing red <code>[ {anomalyCount ?? '?'} ANOMALIES ]</code> badge or press <code>4</code> to fly directly to Float <code>#{anomalyFloatId ?? '—'}</code>.
                 </div>
               </div>
               <div className="demo-step">
@@ -147,7 +148,7 @@ export default function MissionBriefingModal({
 
           {/* Safety & Operational Architecture */}
           <div className="briefing-card safety-card">
-            <h3>🛡️ Reliability & Safety Architecture</h3>
+            <h3><Shield size={18} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle' }} />Reliability & Safety Architecture</h3>
             <p>
               <strong>Evaluation-Safe:</strong> To prevent network dropouts or institutional API rate limits during live hackathon demonstrations, 
               OCEAN-X packages certified, CF-1.8 compliant NetCDF4 datasets locally. 
@@ -166,7 +167,8 @@ export default function MissionBriefingModal({
               onJumpToAnomaly();
             }}
           >
-            🎯 Jump to Active Marine Heatwave{anomalyFloatId ? ` (#${anomalyFloatId})` : ''}
+            <Navigation size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+            Jump to Active Marine Heatwave{anomalyFloatId ? ` (#${anomalyFloatId})` : ''}
           </button>
           <button className="btn-close-briefing" onClick={onClose}>
             Close Briefing & Enter C2 Dashboard

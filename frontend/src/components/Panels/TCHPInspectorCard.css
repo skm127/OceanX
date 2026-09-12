@@ -91,7 +91,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(10, 10, 10, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   margin-bottom: 12px;
@@ -174,7 +174,7 @@
 }
 
 .tchp-stat-box {
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(10, 10, 10, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 6px;
   padding: 8px 10px;
@@ -206,7 +206,7 @@
 }
 
 .stat-val.threshold-val {
-  color: #38bdf8;
+  color: var(--text-dim, #a1a1aa);
 }
 
 .stat-desc {
@@ -227,7 +227,7 @@
   border-radius: 6px;
   padding: 6px 10px;
   font-size: 9px;
-  color: #7dd3fc;
+  color: var(--text-dim, #a1a1aa);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 

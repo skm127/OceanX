@@ -10,6 +10,28 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import {
+  Bot,
+  AlertTriangle,
+  AlertCircle,
+  MapPin,
+  Activity,
+  Thermometer,
+  Layers,
+  Anchor,
+  Droplets,
+  Waves,
+  Compass,
+  BarChart2,
+  Sun,
+  Split,
+  Radio,
+  ChevronUp,
+  Volume2,
+  Monitor,
+  MessageSquare,
+  BookOpen,
+} from 'lucide-react';
 import type { OceanVariable } from '../../types';
 import { chatWithGuide } from '../../services/api';
 import type { GuideChatMessage } from '../../services/api';
@@ -75,7 +97,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
     {
       id: 'welcome',
       sender: 'ai',
-      text: "👋 Hi! I'm your SAGAR AI Guide. Ocean science can feel overwhelming with all the numbers and grids. I translate everything you see into simple, everyday language. Ask me anything or click a tour below!",
+      text: "Hi! I'm your SAGAR AI Guide. Ocean science can feel overwhelming with all the numbers and grids. I translate everything you see into simple, everyday language. Ask me anything or click a tour below!",
     },
   ]);
   const [inputQuery, setInputQuery] = useState('');
@@ -128,13 +150,13 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
 
   // 1. Dynamic Live Screen Explanation Generator (Plain Layman Terms)
   const getLiveScreenExplanation = () => {
-    const parts: { title: string; body: string; icon: string; highlight?: string; action?: () => void; actionText?: string }[] = [];
+    const parts: { title: string; body: string; Icon: React.ComponentType<{ size?: number; className?: string }>; highlight?: string; action?: () => void; actionText?: string }[] = [];
 
     // Selected float — status text comes from the LIVE fleet analysis when available.
     if (selectedProfileId && topAnomaly &&
         (selectedProfileId === topAnomaly.platform_id || selectedProfileId.includes(topAnomaly.platform_id))) {
       parts.push({
-        icon: '🚨',
+        Icon: AlertTriangle,
         title: `Selected: Top Fleet Anomaly (Float #${topAnomaly.platform_id})`,
         body: `You clicked on a robotic probe floating in the Indian Ocean. The supercomputer model predicted a much cooler layer here, but this robot actually measured water roughly +${topAnomaly.max_delta.toFixed(1)}°C hotter at ${Math.round(topAnomaly.max_depth)}m depth! That is a hidden heat bubble that satellites completely missed.`,
         highlight: `Top Fleet Anomaly (+${topAnomaly.max_delta.toFixed(1)}°C at ${Math.round(topAnomaly.max_depth)}m)`,
@@ -143,7 +165,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
       });
     } else if (selectedProfileId) {
       parts.push({
-        icon: '🤖',
+        Icon: Bot,
         title: `Selected In-Situ Platform #${selectedProfileId.replace(/^argo_|_\d+$/g, '')}`,
         body: `You are inspecting a physical ocean sensor deployed by INCOIS. It records live water temperature and saltiness down to 2,000 meters and transmits its ground-truth findings back to satellites.`,
       });
@@ -152,7 +174,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
     // Probed coordinate
     if (probedCoord) {
       parts.push({
-        icon: '📍',
+        Icon: MapPin,
         title: `Probed Ocean Coordinate (${probedCoord.lat.toFixed(2)}°N, ${probedCoord.lon.toFixed(2)}°E)`,
         body: `You dropped an oceanographic probe at this spot. The 3D subsurface water column slices down through depth layers to reveal the vertical temperature structure.`,
       });
@@ -161,7 +183,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
     // TCHP / Cyclone Energy
     if (showTCHP) {
       parts.push({
-        icon: '🌀',
+        Icon: Activity,
         title: 'Layer: Cyclone Fuel (Tropical Cyclone Heat Potential)',
         body: "Think of this like the ocean's battery charge! Tropical cyclones get their destructive power by drinking heat from the ocean. Gold and purple areas have stored energy over 50 kJ/cm² — enough to rapidly turn an ordinary storm into a monster super-cyclone overnight.",
         highlight: 'Areas > 50 kJ/cm² trigger Rapid Cyclone Intensification alerts',
@@ -169,7 +191,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
     } else if (variable === 'thetao') {
       if (depth === 0) {
         parts.push({
-          icon: '🌡️',
+          Icon: Thermometer,
           title: 'Layer: Sea Surface Temperature (0m)',
           body: "You're looking at the very surface of the ocean. The warm orange/red areas (above 28°C) around India are naturally warm tropical waters. But looking only at the surface is like checking the crust of a hot soup—the real fuel is trapped deeper down!",
           action: () => onSetDepth(100),
@@ -177,21 +199,21 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
         });
       } else if (depth >= 50 && depth <= 150) {
         parts.push({
-          icon: '🤿',
+          Icon: Layers,
           title: `Layer: Subsurface Ocean (${depth}m Depth — The Thermocline)`,
           body: `You have dived ${depth} meters underwater! This is the transition zone where warm surface water meets the cold abyss. When mesoscale eddies trap heat here, cyclones can feed on it without cooling down. Surface satellites cannot see this depth at all!`,
           highlight: `Currently slicing at ${depth} meters below sea level`,
         });
       } else {
         parts.push({
-          icon: '⚓',
+          Icon: Anchor,
           title: `Layer: Deep Ocean (${depth}m Depth)`,
           body: `At ${depth} meters deep, sunlight never reaches. The water drops to between 7°C and 12°C. This cold deep reservoir stabilizes the ocean and buffers our planet's climate.`,
         });
       }
     } else if (variable === 'so') {
       parts.push({
-        icon: '🧂',
+        Icon: Droplets,
         title: 'Layer: Ocean Saltiness (Salinity)',
         body: "This shows how salty the water is. Notice the lighter green patch in the Northern Bay of Bengal? That is millions of tons of fresh river water pouring in from the Ganges and Brahmaputra rivers! Fresh water is lighter than salt water, so it floats on top like a blanket, trapping heat underneath.",
         highlight: 'Freshwater river plumes act like a thermal blanket',
@@ -201,7 +223,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
     // Currents
     if (showCurrents) {
       parts.push({
-        icon: '🌊',
+        Icon: Waves,
         title: 'Current Streamlines Active',
         body: "Those 500 animated flowing lines are like giant underwater rivers! They move trillions of liters of water, shaping monsoon weather patterns and guiding where fishermen find schools of fish.",
       });
@@ -210,13 +232,13 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
     // Basin / Sector
     if (currentSector === 'bay_of_bengal') {
       parts.push({
-        icon: '📍',
+        Icon: Compass,
         title: 'Focus: Bay of Bengal Basin',
         body: "Surrounded by land on three sides and fed by giant rivers, the Bay of Bengal is one of the world's most cyclone-prone bodies of water because of its warm surface layer and freshwater cap.",
       });
     } else if (currentSector === 'arabian_sea') {
       parts.push({
-        icon: '📍',
+        Icon: Compass,
         title: 'Focus: Arabian Sea Basin',
         body: "The Arabian Sea is saltier and has strong deep-water upwelling along the western coast during the summer monsoon, cooling the surface water and bringing up nutrients.",
       });
@@ -225,13 +247,13 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
     // Product Mode
     if (productMode === 'operational') {
       parts.push({
-        icon: '🚨',
+        Icon: AlertCircle,
         title: 'Mode: Disaster Situation Room',
         body: "You are in command center mode. This view monitors active storm hazards, cyclone rapid intensification risk, and active sensor fleet readiness for disaster management authorities like the Navy, Coast Guard, and NDRF.",
       });
     } else if (productMode === 'sounding') {
       parts.push({
-        icon: '📊',
+        Icon: BarChart2,
         title: 'Mode: High-Definition Sounding Studio',
         body: "This full-page studio lets you compare the computer's prediction against the real robotic measurement from surface down to 500m depth. The red shaded zone highlights where the computer was wrong.",
       });
@@ -244,7 +266,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
   const guidedTours = [
     {
       id: 'anomaly',
-      icon: '🚨',
+      Icon: AlertTriangle,
       title: 'Find the Dangerous Cyclone Heat Bubble',
       desc: topAnomaly
         ? `Jump directly to Float #${topAnomaly.platform_id} and dive to its anomalous depth to see hidden heat that satellites missed.`
@@ -256,105 +278,105 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
           onSetVariable('thetao');
           onSelectSector('anomaly_target');
           addAiMessage(
-            `🎯 **Here it is!** We just jumped to Argo Float #${topAnomaly.platform_id} and set depth to ${Math.round(topAnomaly.max_depth)} meters.\n\nNotice that warm patch? That's a +${topAnomaly.max_delta.toFixed(1)}°C subsurface heat anomaly found by the live fleet analysis. If a cyclone passes over this, it will rapidly intensify because this heat reservoir feeds the storm!`
+            `**Here it is!** We just jumped to Argo Float #${topAnomaly.platform_id} and set depth to ${Math.round(topAnomaly.max_depth)} meters.\n\nNotice that warm patch? That's a +${topAnomaly.max_delta.toFixed(1)}°C subsurface heat anomaly found by the live fleet analysis. If a cyclone passes over this, it will rapidly intensify because this heat reservoir feeds the storm!`
           );
         } else {
           onSelectSector('anomaly_target');
-          addAiMessage("🎯 **Jumping to the fleet's most anomalous float.** The live analysis is still loading — try again in a moment.");
+          addAiMessage("**Jumping to the fleet's most anomalous float.** The live analysis is still loading — try again in a moment.");
         }
       },
     },
     {
       id: 'currents',
-      icon: '🌊',
+      Icon: Waves,
       title: 'Turn on Moving Ocean Rivers',
       desc: 'Activate animated particle streamlines showing the massive currents flowing across the Indian Ocean.',
       action: () => {
         if (!showCurrents) onToggleCurrents();
         addAiMessage(
-          "🌊 **Ocean currents are now flowing!** Those glowing stream ribbons show water moving across the Arabian Sea and Bay of Bengal. Notice the swirling gyre in the central basin—this circulation transports heat and nutrients across thousands of kilometers."
+          "**Ocean currents are now flowing!** Those glowing stream ribbons show water moving across the Arabian Sea and Bay of Bengal. Notice the swirling gyre in the central basin—this circulation transports heat and nutrients across thousands of kilometers."
         );
       },
     },
     {
       id: 'tchp',
-      icon: '🌀',
+      Icon: Activity,
       title: 'Inspect Cyclone Fuel (TCHP)',
       desc: 'Switch to the Tropical Cyclone Heat Potential map to see the ocean battery charge down to 26°C.',
       action: () => {
         if (!showTCHP) onToggleTCHP();
         addAiMessage(
-          "🌀 **Cyclone Fuel (TCHP) activated!** Any zone colored gold or purple has stored heat over 50 kJ/cm² down to the 26°C depth. This is the international threshold where forecasters issue Rapid Intensification warnings for incoming storms."
+          "**Cyclone Fuel (TCHP) activated!** Any zone colored gold or purple has stored heat over 50 kJ/cm² down to the 26°C depth. This is the international threshold where forecasters issue Rapid Intensification warnings for incoming storms."
         );
       },
     },
     {
       id: 'salinity',
-      icon: '🧂',
+      Icon: Droplets,
       title: 'See Fresh River Water vs Salt Water',
       desc: 'Switch to salinity to see how the Ganges and Brahmaputra rivers pour into the northern bay.',
       action: () => {
         onSetVariable('so');
         onSelectSector('bay_of_bengal');
         addAiMessage(
-          "🧂 **Salinity view enabled!** Look at the light green plume in the northern Bay of Bengal. That is fresh water pouring out from Indian and Bangladeshi rivers. Because it is less dense than salt water, it acts like a blanket, trapping heat underneath and accelerating cyclone formation."
+          "**Salinity view enabled!** Look at the light green plume in the northern Bay of Bengal. That is fresh water pouring out from Indian and Bangladeshi rivers. Because it is less dense than salt water, it acts like a blanket, trapping heat underneath and accelerating cyclone formation."
         );
       },
     },
     {
       id: 'dive',
-      icon: '🤿',
+      Icon: Layers,
       title: 'Take a 100-Meter Deep Dive',
       desc: 'Peel back the ocean surface down to 100m depth to see the underwater thermocline.',
       action: () => {
         onSetDepth(100);
         onSetVariable('thetao');
         addAiMessage(
-          "🤿 **Dived to 100 meters!** You are now looking at the subsurface layer. Notice how different this looks compared to the surface—this is where ocean temperature changes drastically and where underwater heat gets trapped."
+          "**Dived to 100 meters!** You are now looking at the subsurface layer. Notice how different this looks compared to the surface—this is where ocean temperature changes drastically and where underwater heat gets trapped."
         );
       },
     },
     {
       id: 'surface',
-      icon: '☀️',
+      Icon: Sun,
       title: 'Return to Ocean Surface (0m)',
       desc: 'Bring the water layer back up to sea level.',
       action: () => {
         onSetDepth(0);
-        addAiMessage("☀️ **Back to the surface!** You are viewing sea surface temperatures across India's oceans.");
+        addAiMessage("**Back to the surface!** You are viewing sea surface temperatures across India's oceans.");
       },
     },
     {
       id: 'transect',
-      icon: '⟂',
+      Icon: Split,
       title: 'Slice the Ocean (2D Cross-Section)',
       desc: 'Open the 2D vertical transect tool to slice the ocean from Chennai to Port Blair like a cake.',
       action: () => {
         onOpenTransect();
-        addAiMessage("⟂ **Vertical Transect opened!** This slices through the ocean from west to east so you can see the thermocline depth slope from surface down to 500m.");
+        addAiMessage("**Vertical Transect opened!** This slices through the ocean from west to east so you can see the thermocline depth slope from surface down to 500m.");
       },
     },
     {
       id: 'sounding',
-      icon: '📊',
+      Icon: BarChart2,
       title: 'Open Dedicated Sounding Studio',
       desc: 'Inspect full 0-500m model vs observation sounding curves, 70-layer data matrix, and CSV export.',
       action: () => {
         onSetProductMode('sounding');
         addAiMessage(
-          "📊 **Sounding Studio opened!** Here you can inspect high-resolution depth soundings comparing the computer's prediction against real robotic measurements with zero UI clutter."
+          "**Sounding Studio opened!** Here you can inspect high-resolution depth soundings comparing the computer's prediction against real robotic measurements with zero UI clutter."
         );
       },
     },
     {
       id: 'realtime',
-      icon: '🛰️',
+      Icon: Radio,
       title: 'Live Real-Time Ocean Data & Predictions',
       desc: 'View real-time wave heights, current velocities, and 72-hour forward predictions from global marine APIs.',
       action: () => {
         onOpenRealtime?.();
         addAiMessage(
-          "🛰️ **Live Data Panel opened!** You're now viewing real-time ocean telemetry from the Open-Meteo Marine API. The graph shows wave and current predictions for the next 72 hours. Scrub the slider to see future conditions!"
+          "**Live Data Panel opened!** You're now viewing real-time ocean telemetry from the Open-Meteo Marine API. The graph shows wave and current predictions for the next 72 hours. Scrub the slider to see future conditions!"
         );
       },
     },
@@ -425,14 +447,14 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
           title="Open AI Ocean Guide — Simple layman explanation of what you are seeing"
         >
           <div className="pill-avatar-wrap">
-            <span className="pill-avatar">🤖</span>
+            <Bot size={18} className="pill-avatar" />
             <span className="pill-pulse-ring" />
           </div>
           <div className="pill-text-col">
             <span className="pill-title">AI OCEAN GUIDE</span>
             <span className="pill-subtitle">What am I looking at? Click me!</span>
           </div>
-          <span className="pill-chevron">▲</span>
+          <ChevronUp size={14} className="pill-chevron" />
         </button>
       )}
 
@@ -443,7 +465,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
           <div className="guide-header">
             <div className="guide-header-title-wrap">
               <div className="guide-avatar-badge">
-                <span>🤖</span>
+                <Bot size={16} />
               </div>
               <div className="guide-title-meta">
                 <div className="guide-title-row">
@@ -464,7 +486,8 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
                   }}
                   title={isSpeaking ? 'Stop voice readout' : 'Read explanation out loud'}
                 >
-                  {isSpeaking ? '🔊 Speaking...' : '🔈 Read Out'}
+                  <Volume2 size={13} style={{ display: 'inline', marginRight: 4 }} />
+                  {isSpeaking ? 'Speaking...' : 'Read Out'}
                 </button>
               )}
               <button className="guide-icon-btn close-btn" onClick={onToggle} title="Minimize Guide">
@@ -479,25 +502,29 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
               className={`guide-tab ${activeTab === 'screen' ? 'active' : ''}`}
               onClick={() => setActiveTab('screen')}
             >
-              💡 What's On Screen
+              <Monitor size={14} style={{ display: 'inline', marginRight: 5 }} />
+              What's On Screen
             </button>
             <button
               className={`guide-tab ${activeTab === 'chat' ? 'active' : ''}`}
               onClick={() => setActiveTab('chat')}
             >
-              💬 Ask Anything
+              <MessageSquare size={14} style={{ display: 'inline', marginRight: 5 }} />
+              Ask Anything
             </button>
             <button
               className={`guide-tab ${activeTab === 'tours' ? 'active' : ''}`}
               onClick={() => setActiveTab('tours')}
             >
-              🚀 Guided Tours
+              <Compass size={14} style={{ display: 'inline', marginRight: 5 }} />
+              Guided Tours
             </button>
             <button
               className={`guide-tab ${activeTab === 'glossary' ? 'active' : ''}`}
               onClick={() => setActiveTab('glossary')}
             >
-              📖 Simple Cheat Sheet
+              <BookOpen size={14} style={{ display: 'inline', marginRight: 5 }} />
+              Simple Cheat Sheet
             </button>
           </div>
 
@@ -515,13 +542,14 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
                 {liveParts.map((part, idx) => (
                   <div key={`part-${idx}`} className="screen-card">
                     <div className="card-header">
-                      <span className="card-icon">{part.icon}</span>
+                      <span className="card-icon"><part.Icon size={16} /></span>
                       <h4 className="card-title">{part.title}</h4>
                     </div>
                     <p className="card-body">{part.body}</p>
                     {part.highlight && (
                       <div className="card-highlight">
-                        <span>⚡ {part.highlight}</span>
+                        <Activity size={13} style={{ display: 'inline', marginRight: 4 }} />
+                        <span>{part.highlight}</span>
                       </div>
                     )}
                     {part.action && (
@@ -529,7 +557,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
                         className="card-action-btn"
                         onClick={part.action}
                       >
-                        👉 {part.actionText || 'Take me there'}
+                        {part.actionText || 'Take me there'} →
                       </button>
                     )}
                   </div>
@@ -596,7 +624,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
                           className="bubble-action-btn"
                           onClick={msg.onAction}
                         >
-                          👉 {msg.actionLabel}
+                          {msg.actionLabel} →
                         </button>
                       )}
                     </div>
@@ -653,7 +681,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
                 {guidedTours.map((tour) => (
                   <div key={tour.id} className="tour-card" onClick={tour.action}>
                     <div className="tour-card-header">
-                      <span className="tour-icon">{tour.icon}</span>
+                      <span className="tour-icon"><tour.Icon size={18} /></span>
                       <h4 className="tour-title">{tour.title}</h4>
                     </div>
                     <p className="tour-desc">{tour.desc}</p>
@@ -668,27 +696,27 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
           {activeTab === 'glossary' && (
             <div className="guide-body glossary-tab">
               <div className="glossary-item">
-                <h4>🌡️ Thermocline</h4>
+                <h4>Thermocline</h4>
                 <p>The underwater layer (around 80–150 meters) where warm surface water quickly turns cold. This is where dangerous cyclone heat gets trapped.</p>
               </div>
               <div className="glossary-item">
-                <h4>🌀 TCHP (Cyclone Heat Potential)</h4>
+                <h4>TCHP (Cyclone Heat Potential)</h4>
                 <p>Think of it as the ocean's battery charge. The more heat trapped above 26°C, the more explosive energy a cyclone has to turn into a super-storm.</p>
               </div>
               <div className="glossary-item">
-                <h4>🤖 Argo Profiling Floats</h4>
+                <h4>Argo Profiling Floats</h4>
                 <p>Underwater robotic weather balloons! They dive 2,000 meters into the abyss and surface every 10 days to text message real temperature readings to satellites.</p>
               </div>
               <div className="glossary-item">
-                <h4>🛰️ Satellite Skin Effect</h4>
+                <h4>Satellite Skin Effect</h4>
                 <p>Satellites can only see the top 1 millimeter of the water. They are completely blind to heat hiding 100 meters underwater.</p>
               </div>
               <div className="glossary-item">
-                <h4>🧂 Salinity Barrier Layer</h4>
+                <h4>Salinity Barrier Layer</h4>
                 <p>When rivers like the Ganga pour fresh water into the sea, the light fresh water sits on top like a blanket, trapping boiling heat underneath.</p>
               </div>
               <div className="glossary-item">
-                <h4>🏛️ INCOIS</h4>
+                <h4>INCOIS</h4>
                 <p>India's premier ocean science agency (Ministry of Earth Sciences, Hyderabad) that protects fishermen, issues tsunami warnings, and forecasts cyclones.</p>
               </div>
             </div>

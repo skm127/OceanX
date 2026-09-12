@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { Database, Grid, FileCode2, Radio, Cpu } from 'lucide-react';
 import useModalA11y from '../../hooks/useModalA11y';
 import './DataManagerModal.css';
 
@@ -59,7 +60,10 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ onClose }) =
 
         <div className="dm-header">
           <div className="dm-title-group">
-            <span className="dm-badge">🗂️ DATA MANAGER & METADATA INSPECTOR</span>
+            <span className="dm-badge">
+              <Database size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              DATA MANAGER & METADATA INSPECTOR
+            </span>
             <span className="dm-sub">CF-1.8 NetCDF Metadata, Sensor Registry & Ingestion Pipeline Health</span>
           </div>
           <button className="dm-close" onClick={onClose} title="Close Data Manager">✕</button>
@@ -68,7 +72,10 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ onClose }) =
         <div className="dm-body">
           {/* Grid Specification */}
           <section className="dm-section">
-            <h4 className="dm-section-title">📐 CF-1.8 Grid Specification & Extents</h4>
+            <h4 className="dm-section-title">
+              <Grid size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+              CF-1.8 Grid Specification & Extents
+            </h4>
             <div className="dm-grid-info">
               {Object.entries(GRID_INFO).map(([key, val]) => (
                 <div key={key} className="dm-grid-row">
@@ -83,7 +90,10 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ onClose }) =
 
           {/* CF Variables */}
           <section className="dm-section">
-            <h4 className="dm-section-title">🔬 NetCDF CF Variables & Coordinate Axes</h4>
+            <h4 className="dm-section-title">
+              <FileCode2 size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+              NetCDF CF Variables & Coordinate Axes
+            </h4>
             <table className="dm-var-table">
               <thead>
                 <tr>
@@ -108,7 +118,10 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ onClose }) =
 
           {/* Sensor Registry */}
           <section className="dm-section">
-            <h4 className="dm-section-title">📡 INCOIS Multi-Sensor Registry Status</h4>
+            <h4 className="dm-section-title">
+              <Radio size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+              INCOIS Multi-Sensor Registry Status
+            </h4>
             <div className="dm-sensor-grid">
               {SENSORS.map((s) => (
                 <div key={s.id} className={`dm-sensor-card ${s.status}`}>
@@ -129,7 +142,10 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ onClose }) =
 
           {/* Ingestion Pipeline */}
           <section className="dm-section">
-            <h4 className="dm-section-title">⚙️ Data Pipeline Processing Stages</h4>
+            <h4 className="dm-section-title">
+              <Cpu size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+              Data Pipeline Processing Stages
+            </h4>
             <div className="dm-pipeline">
               {PIPELINE_STAGES.map((p, i) => (
                 <div key={p.stage} className={`dm-pipe-stage ${p.status}`}>

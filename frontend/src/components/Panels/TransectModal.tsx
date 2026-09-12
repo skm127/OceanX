@@ -4,6 +4,7 @@
  * Renders 2D vertical depth-vs-distance contour cross sections across arbitrary oceanic transect lines.
  */
 import React, { useState, useEffect, useRef } from 'react';
+import { Split, AlertTriangle } from 'lucide-react';
 import useModalA11y from '../../hooks/useModalA11y';
 import { showToast } from '../../utils/toast';
 import { calculateTransect } from '../../services/api';
@@ -199,7 +200,10 @@ export const TransectModal: React.FC<TransectModalProps> = ({
 
         <div className="transect-header">
           <div className="transect-badge-row">
-            <span className="transect-tag">⟂ 2D VERTICAL SOUNDING TRANSECT</span>
+            <span className="transect-tag">
+              <Split size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              2D VERTICAL SOUNDING TRANSECT
+            </span>
             <span className="transect-var-pills">
               <button
                 className={`var-pill ${variable === 'thetao' ? 'active' : ''}`}
@@ -219,7 +223,7 @@ export const TransectModal: React.FC<TransectModalProps> = ({
             <div>
               <h2 className="transect-title">OCEAN TRANSECT CROSS-SECTION</h2>
               <span className="transect-coords">
-                A ({line.lat1}°N, {line.lon1}°E) ➔ B ({line.lat2}°N, {line.lon2}°E)
+                A ({line.lat1}°N, {line.lon1}°E) → B ({line.lat2}°N, {line.lon2}°E)
               </span>
             </div>
             <button className="transect-close-btn" onClick={onClose}>
@@ -253,7 +257,7 @@ export const TransectModal: React.FC<TransectModalProps> = ({
 
           {error && (
             <div className="transect-error">
-              <span>⚠ {error}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={14} /> {error}</span>
             </div>
           )}
 

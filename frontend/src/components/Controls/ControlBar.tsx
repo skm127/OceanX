@@ -2,6 +2,7 @@
  * Bottom control bar with Variable selector, Depth slider with presets,
  * Currents toggle, and live status.
  */
+import { Waves } from 'lucide-react';
 import { VARIABLE_LABELS, type OceanVariable } from '../../types';
 import './ControlBar.css';
 
@@ -100,7 +101,7 @@ export default function ControlBar({
           onClick={onToggleCurrents}
           title="Toggle ocean surface current vectors"
         >
-          <span className="btn-icon">➤</span>
+          <span className="btn-icon"><Waves size={13} /></span>
           <span>Currents: {showCurrents ? 'ON' : 'OFF'}</span>
         </button>
       </div>

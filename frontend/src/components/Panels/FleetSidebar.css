@@ -5,15 +5,15 @@
   left: 14px;
   width: 320px;
   max-height: calc(100vh - 160px);
-  background: rgba(15, 23, 42, 0.96);
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(10, 10, 10, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
   z-index: 45;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.2);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 255, 255, 0.2);
   font-family: var(--font-mono);
   overflow: hidden;
   animation: fleetSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -40,7 +40,7 @@
   align-items: center;
   padding: 10px 14px;
   background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(56, 189, 248, 0.18);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .fleet-header-title {
@@ -62,9 +62,9 @@
   font-size: 9px;
   padding: 1px 6px;
   border-radius: 10px;
-  background: rgba(0, 240, 255, 0.15);
-  border: 1px solid rgba(0, 240, 255, 0.3);
-  color: #00f0ff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-dim, #a1a1aa);
   font-weight: 700;
 }
 
@@ -111,22 +111,22 @@
   align-items: center;
   padding: 7px 10px;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 5px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .float-card:hover {
-  background: rgba(0, 240, 255, 0.08);
-  border-color: rgba(0, 240, 255, 0.4);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.1);
   transform: translateX(2px);
 }
 
 .float-card.active {
-  background: rgba(0, 240, 255, 0.15);
-  border-color: #00f0ff;
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--text-dim, #a1a1aa);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
 .float-card.critical {

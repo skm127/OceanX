@@ -8,6 +8,19 @@
  * - Fleet platform switcher allowing instant inspection across all Indian Ocean platforms
  */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  Activity,
+  Thermometer,
+  Droplets,
+  Download,
+  ArrowLeft,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
+  Layers,
+  Cpu,
+  Radio,
+} from 'lucide-react';
 import useModalA11y from '../../hooks/useModalA11y';
 import { compareProfile, getArgoProfile, detectAnomaly } from '../../services/api';
 import type {
@@ -226,7 +239,10 @@ export const SoundingStudioPage: React.FC<SoundingStudioPageProps> = ({
       <header className="studio-header">
         <div className="studio-header-left">
           <div className="studio-badge-group">
-            <span className="studio-brand-tag">📊 IN-SITU OBSERVATION STUDIO</span>
+            <span className="studio-brand-tag">
+              <Activity size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              IN-SITU OBSERVATION STUDIO
+            </span>
             <span className="studio-mode-pill">MODEL VS REALITY DEEP DIVE</span>
           </div>
 
@@ -247,10 +263,10 @@ export const SoundingStudioPage: React.FC<SoundingStudioPageProps> = ({
               {profiles.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.platform_type === 'moored_buoy'
-                    ? `⚓ OMNI Buoy #${p.platform_id} (${p.latitude.toFixed(1)}°N, ${p.longitude.toFixed(1)}°E)`
+                    ? `OMNI Buoy #${p.platform_id} (${p.latitude.toFixed(1)}°N, ${p.longitude.toFixed(1)}°E)`
                     : p.platform_type === 'glider'
-                    ? `🌊 Glider #${p.platform_id} (${p.latitude.toFixed(1)}°N, ${p.longitude.toFixed(1)}°E)`
-                    : `📡 Float #${p.platform_id} (${p.latitude.toFixed(1)}°N, ${p.longitude.toFixed(1)}°E)${
+                    ? `Glider #${p.platform_id} (${p.latitude.toFixed(1)}°N, ${p.longitude.toFixed(1)}°E)`
+                    : `Float #${p.platform_id} (${p.latitude.toFixed(1)}°N, ${p.longitude.toFixed(1)}°E)${
                         platformStatus?.[p.platform_id]
                           ? ` — ${platformStatus[p.platform_id].toUpperCase()}`
                           : ''
@@ -268,28 +284,32 @@ export const SoundingStudioPage: React.FC<SoundingStudioPageProps> = ({
             onClick={() => onVariableChange('thetao')}
             title="Inspect Potential Temperature (°C)"
           >
-            🌡️ Temperature (θ)
+            <Thermometer size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+            Temperature (θ)
           </button>
           <button
             className={`studio-var-btn ${variable === 'so' ? 'active' : ''}`}
             onClick={() => onVariableChange('so')}
             title="Inspect Practical Salinity (PSU)"
           >
-            🧂 Salinity (S)
+            <Droplets size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+            Salinity (S)
           </button>
         </div>
 
         {/* Header Right Actions */}
         <div className="studio-header-right">
           <button className="studio-action-btn" onClick={handleExportCSV} title="Export profile to CSV">
-            ⬇ CSV EXPORT
+            <Download size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+            CSV EXPORT
           </button>
           <button
             className="studio-close-btn"
             onClick={onClose}
             title="Return to 3D Globe Workstation (Esc)"
           >
-            ✕ BACK TO GLOBE
+            <ArrowLeft size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+            BACK TO GLOBE
           </button>
         </div>
       </header>
@@ -303,7 +323,7 @@ export const SoundingStudioPage: React.FC<SoundingStudioPageProps> = ({
           </div>
         ) : error ? (
           <div className="studio-error-state">
-            <span>⚠ {error}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={14} /> {error}</span>
             <button className="studio-retry-btn" onClick={() => setSelectedId(selectedId)}>
               Retry Connection
             </button>
@@ -322,18 +342,27 @@ export const SoundingStudioPage: React.FC<SoundingStudioPageProps> = ({
                       : `ARGO PROFILING FLOAT #${profile?.platform_id || selectedId}`}
                   </span>
                   {isCritical ? (
-                    <span className="status-tag critical">🚨 CRITICAL ANOMALY DETECTED</span>
+                    <span className="status-tag critical">
+                      <AlertCircle size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                      CRITICAL ANOMALY DETECTED
+                    </span>
                   ) : isWarning ? (
-                    <span className="status-tag warning">⚠️ MODERATE PROFILE DRIFT</span>
+                    <span className="status-tag warning">
+                      <AlertTriangle size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                      MODERATE PROFILE DRIFT
+                    </span>
                   ) : (
-                    <span className="status-tag nominal">✓ MODEL REANALYSIS VERIFIED</span>
+                    <span className="status-tag nominal">
+                      <CheckCircle2 size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                      MODEL REANALYSIS VERIFIED
+                    </span>
                   )}
                 </div>
                 <div className="platform-meta-row">
-                  <span>📍 Coordinates: {profile?.latitude.toFixed(2)}°N, {profile?.longitude.toFixed(2)}°E</span>
-                  <span>📅 Reported: {profile?.timestamp ? new Date(profile.timestamp).toUTCString() : 'Active Fleet'}</span>
-                  <span>📏 Depths: {comparisons.length} Sampling Levels (0 - 500m)</span>
-                  <span>🛡️ QC Status: WMO Flag 1 (Passed Verified Sensors)</span>
+                  <span>Coordinates: {profile?.latitude.toFixed(2)}°N, {profile?.longitude.toFixed(2)}°E</span>
+                  <span>Reported: {profile?.timestamp ? new Date(profile.timestamp).toUTCString() : 'Active Fleet'}</span>
+                  <span>Depths: {comparisons.length} Sampling Levels (0 - 500m)</span>
+                  <span>QC Status: WMO Flag 1 (Passed Verified Sensors)</span>
                 </div>
               </div>
 
@@ -380,11 +409,22 @@ export const SoundingStudioPage: React.FC<SoundingStudioPageProps> = ({
               <div className={`studio-advisory-banner ${isCritical ? 'critical' : isWarning ? 'warning' : 'nominal'}`}>
                 <div className="advisory-header-row">
                   <span className="advisory-title">
-                    {isCritical
-                      ? '⚡ SUBSURFACE MARINE HEATWAVE & ISOPYCNAL INVERSION'
-                      : isWarning
-                      ? '⚠️ THERMOCLINE DISPLACEMENT ADVISORY'
-                      : '✓ CONGRUENT WATER COLUMN STRATIFICATION'}
+                    {isCritical ? (
+                      <>
+                        <AlertCircle size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                        SUBSURFACE MARINE HEATWAVE & ISOPYCNAL INVERSION
+                      </>
+                    ) : isWarning ? (
+                      <>
+                        <AlertTriangle size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                        THERMOCLINE DISPLACEMENT ADVISORY
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                        CONGRUENT WATER COLUMN STRATIFICATION
+                      </>
+                    )}
                   </span>
                   <span className="ml-score-pill">
                     Isolation Forest Score: {anomalyAnalysis.anomaly_score.toFixed(2)} / 1.00
@@ -407,7 +447,10 @@ export const SoundingStudioPage: React.FC<SoundingStudioPageProps> = ({
               <div className="studio-card chart-card">
                 <div className="card-header-bar">
                   <div className="card-title-group">
-                    <span className="card-title">📈 VERTICAL WATER COLUMN PROFILE SOUNDING</span>
+                    <span className="card-title">
+                      <Activity size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                      VERTICAL WATER COLUMN PROFILE SOUNDING
+                    </span>
                     <span className="card-subtitle">
                       Numerical Model Reanalysis vs In-Situ {profile?.platform_type?.toUpperCase() || 'ARGO'} Observation (0 – 500m)
                     </span>
@@ -636,19 +679,22 @@ export const SoundingStudioPage: React.FC<SoundingStudioPageProps> = ({
                     className={`tab-btn ${activeTab === 'matrix' ? 'active' : ''}`}
                     onClick={() => setActiveTab('matrix')}
                   >
-                    📋 Full Data Matrix ({comparisons.length} Layers)
+                    <Layers size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                    Full Data Matrix ({comparisons.length} Layers)
                   </button>
                   <button
                     className={`tab-btn ${activeTab === 'features' ? 'active' : ''}`}
                     onClick={() => setActiveTab('features')}
                   >
-                    🧠 5D ML Anomaly Features
+                    <Cpu size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                    5D ML Anomaly Features
                   </button>
                   <button
                     className={`tab-btn ${activeTab === 'provenance' ? 'active' : ''}`}
                     onClick={() => setActiveTab('provenance')}
                   >
-                    🛰️ Platform Telemetry
+                    <Radio size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                    Platform Telemetry
                   </button>
                 </div>
 
@@ -659,7 +705,7 @@ export const SoundingStudioPage: React.FC<SoundingStudioPageProps> = ({
                       <div className="matrix-toolbar">
                         <input
                           type="text"
-                          placeholder="🔍 Filter depths (e.g. 110, 150, 200)..."
+                          placeholder="Filter depths (e.g. 110, 150, 200)..."
                           value={depthSearch}
                           onChange={(e) => setDepthSearch(e.target.value)}
                           className="matrix-search-input"
