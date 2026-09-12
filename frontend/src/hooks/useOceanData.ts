@@ -33,7 +33,8 @@ export interface UseOceanDataReturn {
   dates: string[];
   setVariable: (v: OceanVariable) => void;
   setDepth: (d: number) => void;
-  setTimeIndex: (t: number) => void;
+  /** Accepts a value or functional updater (needed by TimeAnimator's rapid-step handling). */
+  setTimeIndex: (t: number | ((prev: number) => number)) => void;
 }
 
 export function useOceanData(): UseOceanDataReturn {

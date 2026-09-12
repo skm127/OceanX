@@ -10,7 +10,9 @@ interface TimeAnimatorProps {
   timeSteps: number;
   dates: string[];
   loading: boolean;
-  onTimeChange: (timeIndex: number) => void;
+  /** Accepts a functional updater so rapid clicks apply to the LATEST index
+   *  instead of a stale closure value (React batches same-tick clicks). */
+  onTimeChange: (timeIndex: number | ((prev: number) => number)) => void;
 }
 
 const SPEED_OPTIONS = [
@@ -33,17 +35,18 @@ export default function TimeAnimator({
 
   const currentDate = dates[timeIndex] || `Step ${timeIndex + 1}`;
 
-  // Animation loop
+  // Animation loop — functional updater keeps the interval stable across steps
+  // (no teardown/recreate every tick) and never advances from a stale index.
   useEffect(() => {
     if (playing && !loading) {
       intervalRef.current = setInterval(() => {
-        onTimeChange((timeIndex + 1) % timeSteps);
+        onTimeChange((t) => (t + 1) % timeSteps);
       }, SPEED_OPTIONS[speedIdx].ms);
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [playing, loading, timeIndex, timeSteps, speedIdx, onTimeChange]);
+  }, [playing, loading, timeSteps, speedIdx, onTimeChange]);
 
   const togglePlay = useCallback(() => {
     setPlaying((p) => !p);
@@ -55,13 +58,13 @@ export default function TimeAnimator({
 
   const stepBack = useCallback(() => {
     setPlaying(false);
-    onTimeChange((timeIndex - 1 + timeSteps) % timeSteps);
-  }, [timeIndex, timeSteps, onTimeChange]);
+    onTimeChange((t) => (t - 1 + timeSteps) % timeSteps);
+  }, [timeSteps, onTimeChange]);
 
   const stepForward = useCallback(() => {
     setPlaying(false);
-    onTimeChange((timeIndex + 1) % timeSteps);
-  }, [timeIndex, timeSteps, onTimeChange]);
+    onTimeChange((t) => (t + 1) % timeSteps);
+  }, [timeSteps, onTimeChange]);
 
   return (
     <div className="time-animator">
