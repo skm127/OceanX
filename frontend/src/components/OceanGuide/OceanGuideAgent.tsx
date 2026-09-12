@@ -11,6 +11,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import type { OceanVariable } from '../../types';
+import { chatWithGuide } from '../../services/api';
+import type { GuideChatMessage } from '../../services/api';
 import './OceanGuideAgent.css';
 
 export interface OceanGuideAgentProps {
@@ -75,6 +77,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
   const [inputQuery, setInputQuery] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechAvailable, setSpeechAvailable] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -245,6 +248,7 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
         onSelectSector('anomaly_target');
         onSetDepth(100);
         onSetVariable('thetao');
+        onSelectArgo('2902345');
         addAiMessage(
           "🎯 **Here it is!** We just jumped to Argo Float #2902345 in the Central Bay of Bengal and set depth to 100 meters.\n\nNotice that large warm patch? That's a +2.7°C subsurface heat anomaly. If a cyclone passes over this, it will rapidly intensify because this heat reservoir feeds the storm!"
         );
@@ -346,8 +350,8 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
     },
   ];
 
-  // 3. Conversational AI Layman Q&A Handler
-  const handleAskQuestion = (question: string) => {
+  // 3. AI-Powered Conversational Q&A Handler
+  const handleAskQuestion = async (question: string) => {
     if (!question.trim()) return;
 
     const userMsg: ChatMessage = {
@@ -357,11 +361,35 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
     };
     setMessages((prev) => [...prev, userMsg]);
     setInputQuery('');
+    setIsTyping(true);
 
-    setTimeout(() => {
-      const reply = generateLaymanAnswer(question.toLowerCase());
-      addAiMessage(reply.text, reply.actionLabel, reply.onAction);
-    }, 300);
+    try {
+      // Build context from current app state
+      const appContext = {
+        variable,
+        depth,
+        currentSector,
+        selectedProfileId,
+        showCurrents,
+        showTCHP,
+        productMode,
+        probedCoord,
+      };
+
+      // Build conversation history for multi-turn context
+      const history: GuideChatMessage[] = messages
+        .slice(-10)
+        .map((m) => ({ sender: m.sender, text: m.text }));
+
+      const response = await chatWithGuide(question, appContext, history);
+      addAiMessage(response.reply);
+    } catch {
+      addAiMessage(
+        "Sorry, I couldn't process that right now. Try asking about cyclones, Argo floats, depth layers, or how to navigate the platform!"
+      );
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const addAiMessage = (text: string, actionLabel?: string, onAction?: () => void) => {
@@ -373,121 +401,6 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
       onAction,
     };
     setMessages((prev) => [...prev, aiMsg]);
-  };
-
-  const generateLaymanAnswer = (
-    q: string
-  ): { text: string; actionLabel?: string; onAction?: () => void } => {
-    // 1. Hot soup / metaphor
-    if (q.includes('soup') || q.includes('analogy') || q.includes('coffee') || q.includes('metaphor')) {
-      return {
-        text: "☕ **The Hot Soup Analogy**: Imagine a hot bowl of soup on a cold morning. After a few minutes, a cool, thin skin forms on top. It looks harmless from above, but if you dip your spoon in, it's scalding hot underneath! The ocean does the exact same thing: satellites only see the top 1 millimeter 'skin', completely missing the boiling heat trapped 100 meters underwater.",
-      };
-    }
-
-    // 2. Cyclones & Rapid Intensification
-    if (q.includes('cyclone') || q.includes('storm') || q.includes('danger') || q.includes('fani') || q.includes('mocha') || q.includes('intensif')) {
-      return {
-        text: "🌀 **Why cyclones explode overnight**: Cyclones are massive heat engines. When a storm passes over warm surface water, it stirs up cold water from below and slows down. BUT if the water 100 meters deep is ALSO boiling hot (a subsurface heatwave), stirring it up just feeds the cyclone even more! It drinks this heat like rocket fuel, jumping from a mild storm to a Category-5 supercyclone within 24 hours.",
-        actionLabel: '🎯 Show me the cyclone heat hotspot',
-        onAction: () => {
-          onSelectSector('anomaly_target');
-          onSetDepth(100);
-        },
-      };
-    }
-
-    // 3. Argo floats / robots
-    if (q.includes('argo') || q.includes('float') || q.includes('robot') || q.includes('beacon') || q.includes('ring') || q.includes('dot')) {
-      return {
-        text: "🤖 **Robotic Ocean Weather Balloons**: Those pulsing dots in the ocean are Argo profiling floats and OMNI buoys. Argo floats are robotic cylinders that sink 2,000 meters down into the ocean abyss, slowly drift, and then float back to the surface every 10 days measuring temperature and saltiness. When they reach the surface, they text message their data to satellites!",
-        actionLabel: 'Select Critical Float #2902345',
-        onAction: () => onSelectArgo('2902345'),
-      };
-    }
-
-    // 4. Satellites vs Underwater
-    if (q.includes('satellite') || q.includes('skin') || q.includes('blind') || q.includes('space')) {
-      return {
-        text: "🛰️ **The Satellite Blind Spot**: Satellites in space use infrared and microwave cameras to measure sea temperature. But ocean water completely absorbs these light waves in the top 1 millimeter! Satellites cannot see even 1 meter deep, let alone 100 meters. That's why satellite weather forecasts sometimes get surprised by sudden monster cyclones.",
-      };
-    }
-
-    // 5. INCOIS
-    if (q.includes('incois') || q.includes('ministry') || q.includes('government') || q.includes('sih') || q.includes('who made')) {
-      return {
-        text: "🏛️ **About INCOIS**: INCOIS (Indian National Centre for Ocean Information Services) is the Indian government's premier ocean intelligence institute in Hyderabad, under the Ministry of Earth Sciences. They run the National Tsunami Warning Centre, issue daily advisories to millions of fishermen, and forecast cyclone ocean conditions for India's 7,500 km coastline.",
-      };
-    }
-
-    // 6. Fishermen
-    if (q.includes('fish') || q.includes('boat') || q.includes('coast') || q.includes('life') || q.includes('people')) {
-      return {
-        text: "🎣 **How this saves lives & helps fishermen**: 1) Early cyclone warnings give coastal villages days of extra evacuation time. 2) Fishermen avoid dangerous ocean currents that could wreck small boats. 3) Ocean boundary lines (where warm and cool currents meet) are rich in plankton, showing fishermen the best, safest fishing zones.",
-      };
-    }
-
-    // 7. Depth slider
-    if (q.includes('depth') || q.includes('slider') || q.includes('deep') || q.includes('meter') || q.includes('dive')) {
-      return {
-        text: "🤿 **How Depth Works**: At the bottom of the screen is a depth slider (0m, 50m, 100m, 200m, 500m). Moving this slider lets you slice through the ocean like a medical CT scan! 0m is the surface where ships float, 100m is the thermocline where cyclones get their energy, and 500m is the freezing deep sea.",
-        actionLabel: 'Dive to 100m now',
-        onAction: () => onSetDepth(100),
-      };
-    }
-
-    // 8. Currents
-    if (q.includes('current') || q.includes('river') || q.includes('flow') || q.includes('line') || q.includes('arrow')) {
-      return {
-        text: "🌊 **Ocean Currents**: Those glowing, moving ribbons represent massive currents moving billions of gallons of water. In the Indian Ocean, currents actually reverse direction twice a year because of the monsoon winds!",
-        actionLabel: 'Toggle currents on/off',
-        onAction: () => onToggleCurrents(),
-      };
-    }
-
-    // 9. Salinity / Salt
-    if (q.includes('salt') || q.includes('salin') || q.includes('fresh') || q.includes('ganga') || q.includes('river')) {
-      return {
-        text: "🧂 **The River Blanket**: The northern Bay of Bengal gets fresh water from the Ganga and Brahmaputra rivers. Because fresh water is lighter than salty water, it stays on top like oil on water. This 'river blanket' prevents wind from mixing the ocean, locking scalding heat inside the subsurface layer!",
-        actionLabel: 'Show Salinity Layer',
-        onAction: () => {
-          onSetVariable('so');
-          onSelectSector('bay_of_bengal');
-        },
-      };
-    }
-
-    // 10. Explain like I'm 10 / 5
-    if (q.includes('10') || q.includes('5') || q.includes('simple') || q.includes('child') || q.includes('kid')) {
-      return {
-        text: "👦 **For a 10-Year-Old**: Think of this website like Google Earth, but with X-ray vision for the ocean! Instead of just seeing the surface where boats sail, you can dive underwater and see secret swimming robots measuring temperature. If the water deep down gets too hot, it acts like a volcano battery that turns small storms into monster cyclones!",
-      };
-    }
-
-    // 11. Navigation / How to use
-    if (q.includes('how to') || q.includes('use') || q.includes('operate') || q.includes('rotate') || q.includes('controls')) {
-      return {
-        text: "🎮 **How to operate the 3D Globe**: 1) Left-click and drag anywhere on the Earth to spin it. 2) Mouse wheel or pinch to zoom in and out. 3) Click any glowing dot to see what that underwater robot discovered. 4) Use the buttons in this AI Guide window to take instant guided tours!",
-      };
-    }
-
-    // Default fallback answer
-    return {
-      text: `💡 **Here is what's happening**: You're exploring the Indian Ocean using real computer models and robotic sensor buoys. Currently, you are viewing **${
-        variable === 'thetao'
-          ? 'Water Temperature'
-          : variable === 'so'
-          ? 'Salinity (Saltiness)'
-          : variable === 'tchp'
-          ? 'Cyclone Fuel (TCHP)'
-          : 'Ocean Currents'
-      }** at **${depth} meters depth**. Click any of the tours below to explore interesting hotspots!`,
-      actionLabel: 'Take me to the Anomaly Hotspot',
-      onAction: () => {
-        onSelectSector('anomaly_target');
-        onSetDepth(100);
-      },
-    };
   };
 
   const liveParts = getLiveScreenExplanation();
@@ -677,6 +590,18 @@ export const OceanGuideAgent: React.FC<OceanGuideAgentProps> = ({
                     </div>
                   </div>
                 ))}
+                {isTyping && (
+                  <div className="chat-message-row ai">
+                    <div className="chat-bubble typing-bubble">
+                      <span className="typing-dots">
+                        <span className="dot" />
+                        <span className="dot" />
+                        <span className="dot" />
+                      </span>
+                      <span className="typing-label">SAGAR AI is thinking...</span>
+                    </div>
+                  </div>
+                )}
                 <div ref={chatBottomRef} />
               </div>
 

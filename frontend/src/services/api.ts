@@ -751,3 +751,40 @@ function getMockRealtimeFleet(): LiveFleetResponse {
     timestamp: new Date().toISOString(),
   };
 }
+
+/**
+ * Send a message to the AI Guide chatbot and get an intelligent response.
+ */
+export interface GuideChatMessage {
+  sender: 'user' | 'ai';
+  text: string;
+}
+
+export interface GuideChatResponse {
+  reply: string;
+  source: 'gemini' | 'fallback';
+}
+
+export async function chatWithGuide(
+  message: string,
+  context?: Record<string, unknown>,
+  history?: GuideChatMessage[],
+): Promise<GuideChatResponse> {
+  try {
+    const res = await api.post<GuideChatResponse>('/api/guide/chat', {
+      message,
+      context: context || {},
+      history: history || [],
+    });
+    return res.data;
+  } catch {
+    // If backend is unreachable, return a helpful fallback
+    return {
+      reply:
+        "I'm having trouble connecting to the server right now. But here's a quick tip: " +
+        "try spinning the 3D globe by dragging, clicking on glowing sensor dots, or using the depth slider at the bottom to dive underwater! " +
+        "Press D for live ocean data, C for currents, or 1-5 to jump to different ocean basins.",
+      source: 'fallback',
+    };
+  }
+}

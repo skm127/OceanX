@@ -16,7 +16,8 @@ from app.services.argo_service import ArgoService
 from app.services.anomaly_service import AnomalyService
 from app.services.cache_service import CacheService
 from app.services.realtime_service import RealtimeOceanService
-from app.routers import model_data, observations, comparison, anomaly, analytics, realtime
+from app.services.guide_service import GuideService
+from app.routers import model_data, observations, comparison, anomaly, analytics, realtime, guide
 from app.models import schemas
 
 
@@ -54,6 +55,10 @@ async def lifespan(app: FastAPI):
 
     # Initialize Realtime Ocean Service
     realtime_service = RealtimeOceanService()
+
+    # Initialize AI Guide Service (Gemini-powered chatbot)
+    guide_service = GuideService()
+    guide_service.initialize()
     
     # Store on app state for access in endpoints
     app.state.nc_service = nc_service
@@ -61,6 +66,7 @@ async def lifespan(app: FastAPI):
     app.state.anomaly_service = anomaly_service
     app.state.cache_service = cache_service
     app.state.realtime_service = realtime_service
+    app.state.guide_service = guide_service
     app.state.settings = settings
     
     logger.info("🌊 OCEAN-X API started")
@@ -109,6 +115,7 @@ app.include_router(comparison.router)
 app.include_router(anomaly.router)
 app.include_router(analytics.router)
 app.include_router(realtime.router)
+app.include_router(guide.router)
 
 
 @app.get("/api/v1/analytics/heat-potential", response_model=schemas.HeatPotentialResponse, tags=["Analytics & Spatial Intelligence"])
